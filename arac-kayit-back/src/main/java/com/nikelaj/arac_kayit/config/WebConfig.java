@@ -15,7 +15,8 @@ public class WebConfig implements WebMvcConfigurer {
                         "http://127.0.0.1:5173",
                         "https://*.ngrok-free.app",
                         "https://*.ngrok.app",
-                        "https://gloomily-tasting-projector.ngrok-free.dev"
+                        "https://gloomily-tasting-projector.ngrok-free.dev",
+                        "https://arac-kayit-7ub7ew2db-ozanefeozdemirs-projects.vercel.app"
                 )
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
