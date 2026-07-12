@@ -8,11 +8,11 @@ const resolvedBaseUrl =
   configuredBaseUrl && !isLocalBaseUrl(configuredBaseUrl)
     ? configuredBaseUrl
     : typeof window !== 'undefined' && !isLocalHost(window.location.hostname)
-      ? 'https://gloomily-tasting-projector.ngrok-free.dev'
+      ? ''
       : 'http://localhost:8080'
 
 const apiClient = axios.create({
-  baseURL: resolvedBaseUrl,
+  baseURL: resolvedBaseUrl || '/api',
   headers: {
     'Content-Type': 'application/json',
     'ngrok-skip-browser-warning': 'true',

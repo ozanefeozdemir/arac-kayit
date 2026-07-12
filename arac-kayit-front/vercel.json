@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "https://gloomily-tasting-projector.ngrok-free.dev/api/$1"
+    }
+  ]
+}
