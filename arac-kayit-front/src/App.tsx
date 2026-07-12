@@ -7,6 +7,7 @@ import type { VehicleRequest, VehicleResponse } from './types/vehicle'
 import type { MaintenanceRecordResponse } from './types/maintenance'
 import type { ContractInfoResponse } from './types/contract'
 import { formatCurrency, formatDate, getTodayString, normalizePlaka } from './utils/dateFormat'
+import { buildVehicleCsv, parseVehicleCsv } from './types/vehicleCsv'
 import Bildirim from './components/Bildirim'
 
 const emptyVehicleForm: VehicleRequest = {
@@ -49,6 +50,7 @@ function App() {
   const [filters, setFilters] = useState({ plaka: '', modelYili: '', durum: '' })
   const [formErrors, setFormErrors] = useState<Record<string, string>>({})
   const [banner, setBanner] = useState<{ type: 'error' | 'success'; title: string; message?: string } | null>(null)
+  const [isVehicleFormVisible, setIsVehicleFormVisible] = useState(false)
   const [maintenanceForm, setMaintenanceForm] = useState({ bakimTarihi: getTodayString(), yapilanIslemler: '', maliyet: '' })
   const [contractForm, setContractForm] = useState({
     sozlesmeTarihi: getTodayString(),
@@ -128,6 +130,55 @@ function App() {
     setIsEditing(false)
     setActiveTab('vehicle')
     setFormErrors({})
+    setIsVehicleFormVisible(true)
+    window.setTimeout(() => {
+      document.getElementById('vehicle-form-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 0)
+  }
+
+  const handleVehicleFormOpen = () => {
+    setIsVehicleFormVisible(true)
+    window.setTimeout(() => {
+      document.getElementById('vehicle-form-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 0)
+  }
+
+  const handleCsvImport = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    const reader = new FileReader()
+    reader.onload = () => {
+      const csvText = reader.result as string
+      const parsedVehicle = parseVehicleCsv(csvText)
+      setVehicleForm({
+        ...emptyVehicleForm,
+        ...parsedVehicle,
+        modelYili: parsedVehicle.modelYili ?? emptyVehicleForm.modelYili,
+        km: parsedVehicle.km ?? emptyVehicleForm.km,
+      })
+      setSelectedVehicle(null)
+      setIsEditing(false)
+      setFormErrors({})
+      setIsVehicleFormVisible(true)
+      window.setTimeout(() => {
+        document.getElementById('vehicle-form-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }, 0)
+      setBanner({ type: 'success', title: 'CSV içeriği yüklendi. Formu inceleyip kaydedebilirsiniz.' })
+    }
+    reader.readAsText(file)
+    event.target.value = ''
+  }
+
+  const handleCsvExport = () => {
+    const csvContent = buildVehicleCsv(vehicleForm)
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `arac-${vehicleForm.plaka || 'yeni'}.csv`
+    link.click()
+    window.URL.revokeObjectURL(url)
   }
 
   const validateVehicle = (payload: VehicleRequest) => {
@@ -202,6 +253,7 @@ function App() {
 
   const onRowSelect = (vehicle: VehicleResponse) => {
     setSelectedVehicle(vehicle)
+    setIsVehicleFormVisible(true)
     setVehicleForm({
       plaka: vehicle.plaka,
       marka: vehicle.marka,
@@ -388,39 +440,53 @@ function App() {
         )}
       </section>
 
-      <section className="panel">
+      <section className="panel" id="vehicle-form-section">
+        <div className="panel-header inline">
+          <div>
+            <h2>Araç Kayıt Formu</h2>
+            <p className="muted">CSV import/export ile toplu işlem yapın.</p>
+          </div>
+          <div className="panel-actions">
+            <label className="file-upload">
+              <span>CSV İçeri Aktar</span>
+              <input type="file" accept=".csv,text/csv" onChange={handleCsvImport} />
+            </label>
+            <button type="button" className="secondary" onClick={handleCsvExport}>CSV Dışa Aktar</button>
+            {!isVehicleFormVisible ? <button type="button" className="primary" onClick={handleVehicleFormOpen}>Formu Aç</button> : null}
+          </div>
+        </div>
         <div className="tabs">
           <button type="button" className={activeTab === 'vehicle' ? 'tab active' : 'tab'} onClick={() => setActiveTab('vehicle')}>Araç Bilgisi</button>
           <button type="button" className={activeTab === 'maintenance' ? 'tab active' : 'tab'} disabled={!selectedVehicle} onClick={() => setActiveTab('maintenance')} title={!selectedVehicle ? 'Önce bir araç seçin' : ''}>Bakım Bilgisi</button>
           <button type="button" className={activeTab === 'contract' ? 'tab active' : 'tab'} disabled={!selectedVehicle} onClick={() => setActiveTab('contract')} title={!selectedVehicle ? 'Önce bir araç seçin' : ''}>Sözleşme Bilgisi</button>
         </div>
 
-        {activeTab === 'vehicle' ? (
+        {activeTab === 'vehicle' && isVehicleFormVisible ? (
           <form onSubmit={handleVehicleSubmit} className="vehicle-form">
             {!selectedVehicle ? <p className="empty">Detayları görmek için listeden bir araç seçin veya yeni araç ekleyin.</p> : null}
             <div className="form-grid">
               <label>
-                <span>Plaka</span>
+                <span>Plaka <span className="required">*</span></span>
                 <input value={vehicleForm.plaka} onChange={(event) => setVehicleForm({ ...vehicleForm, plaka: event.target.value.toUpperCase() })} maxLength={20} />
                 {formErrors.plaka ? <small className="error-text">{formErrors.plaka}</small> : null}
               </label>
               <label>
-                <span>Marka</span>
+                <span>Marka <span className="required">*</span></span>
                 <input value={vehicleForm.marka} onChange={(event) => setVehicleForm({ ...vehicleForm, marka: event.target.value })} maxLength={50} />
                 {formErrors.marka ? <small className="error-text">{formErrors.marka}</small> : null}
               </label>
               <label>
-                <span>Model</span>
+                <span>Model <span className="required">*</span></span>
                 <input value={vehicleForm.model} onChange={(event) => setVehicleForm({ ...vehicleForm, model: event.target.value })} maxLength={50} />
                 {formErrors.model ? <small className="error-text">{formErrors.model}</small> : null}
               </label>
               <label>
-                <span>Model Yılı</span>
+                <span>Model Yılı <span className="required">*</span></span>
                 <input type="number" value={vehicleForm.modelYili} onChange={(event) => setVehicleForm({ ...vehicleForm, modelYili: Number(event.target.value) })} min="1900" max={new Date().getFullYear()} />
                 {formErrors.modelYili ? <small className="error-text">{formErrors.modelYili}</small> : null}
               </label>
               <label>
-                <span>Tipi</span>
+                <span>Tipi <span className="required">*</span></span>
                 <input value={vehicleForm.tipi} onChange={(event) => setVehicleForm({ ...vehicleForm, tipi: event.target.value })} maxLength={100} />
                 {formErrors.tipi ? <small className="error-text">{formErrors.tipi}</small> : null}
               </label>
@@ -430,7 +496,7 @@ function App() {
                 {formErrors.km ? <small className="error-text">{formErrors.km}</small> : null}
               </label>
               <label>
-                <span>Muayene Tarihi</span>
+                <span>Muayene Tarihi <span className="required">*</span></span>
                 <input type="date" max={getTodayString()} value={vehicleForm.muayeneTarihi} onChange={(event) => setVehicleForm({ ...vehicleForm, muayeneTarihi: event.target.value })} />
                 {formErrors.muayeneTarihi ? <small className="error-text">{formErrors.muayeneTarihi}</small> : null}
               </label>
@@ -443,12 +509,12 @@ function App() {
                 <input value={vehicleForm.lastikBilgisi ?? ''} onChange={(event) => setVehicleForm({ ...vehicleForm, lastikBilgisi: event.target.value })} maxLength={50} />
               </label>
               <label>
-                <span>Tescil Tarihi</span>
+                <span>Tescil Tarihi <span className="required">*</span></span>
                 <input type="date" max={getTodayString()} value={vehicleForm.tescilTarihi} onChange={(event) => setVehicleForm({ ...vehicleForm, tescilTarihi: event.target.value })} />
                 {formErrors.tescilTarihi ? <small className="error-text">{formErrors.tescilTarihi}</small> : null}
               </label>
               <label>
-                <span>Durumu</span>
+                <span>Durumu <span className="required">*</span></span>
                 <select value={vehicleForm.durum} onChange={(event) => setVehicleForm({ ...vehicleForm, durum: event.target.value as VehicleRequest['durum'] })}>
                   {statusOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
                 </select>
@@ -493,11 +559,11 @@ function App() {
                   <h4>+ Yeni Bakım Girişi</h4>
                   <div className="form-grid compact">
                     <label>
-                      <span>Bakım Tarihi</span>
+                      <span>Bakım Tarihi <span className="required">*</span></span>
                       <input type="date" max={getTodayString()} value={maintenanceForm.bakimTarihi} onChange={(event) => setMaintenanceForm({ ...maintenanceForm, bakimTarihi: event.target.value })} />
                     </label>
                     <label>
-                      <span>Yapılan İşlemler</span>
+                      <span>Yapılan İşlemler <span className="required">*</span></span>
                       <textarea value={maintenanceForm.yapilanIslemler} onChange={(event) => setMaintenanceForm({ ...maintenanceForm, yapilanIslemler: event.target.value })} />
                     </label>
                     <label>
@@ -554,9 +620,9 @@ function App() {
                 <form onSubmit={handleContractSubmit} className="nested-form">
                   <h4>+ Yeni Sözleşme Girişi</h4>
                   <div className="form-grid compact two-columns">
-                    <label><span>Sözleşme Tarihi</span><input type="date" max={getTodayString()} value={contractForm.sozlesmeTarihi} onChange={(event) => setContractForm({ ...contractForm, sozlesmeTarihi: event.target.value })} /></label>
-                    <label><span>Yetkili Ad Soyad</span><input value={contractForm.yetkiliAdSoyad} onChange={(event) => setContractForm({ ...contractForm, yetkiliAdSoyad: event.target.value })} /></label>
-                    <label><span>Araç Kiralayan</span><input value={contractForm.aracKiralayan} onChange={(event) => setContractForm({ ...contractForm, aracKiralayan: event.target.value })} /></label>
+                    <label><span>Sözleşme Tarihi <span className="required">*</span></span><input type="date" max={getTodayString()} value={contractForm.sozlesmeTarihi} onChange={(event) => setContractForm({ ...contractForm, sozlesmeTarihi: event.target.value })} /></label>
+                    <label><span>Yetkili Ad Soyad <span className="required">*</span></span><input value={contractForm.yetkiliAdSoyad} onChange={(event) => setContractForm({ ...contractForm, yetkiliAdSoyad: event.target.value })} /></label>
+                    <label><span>Araç Kiralayan <span className="required">*</span></span><input value={contractForm.aracKiralayan} onChange={(event) => setContractForm({ ...contractForm, aracKiralayan: event.target.value })} /></label>
                     <label><span>Unvan</span><input value={contractForm.unvan} onChange={(event) => setContractForm({ ...contractForm, unvan: event.target.value })} /></label>
                     <label><span>Vergi Dairesi</span><input value={contractForm.vergiDairesi} onChange={(event) => setContractForm({ ...contractForm, vergiDairesi: event.target.value })} /></label>
                     <label><span>TCKN</span><input value={contractForm.tckn} onChange={(event) => setContractForm({ ...contractForm, tckn: event.target.value })} /></label>
@@ -564,11 +630,11 @@ function App() {
                     <label><span>Telefon</span><input value={contractForm.telefon} onChange={(event) => setContractForm({ ...contractForm, telefon: event.target.value })} /></label>
                     <label><span>Adres</span><textarea value={contractForm.adres} onChange={(event) => setContractForm({ ...contractForm, adres: event.target.value })} /></label>
                     <label><span>Kullanıcı</span><input value={contractForm.kullanici} onChange={(event) => setContractForm({ ...contractForm, kullanici: event.target.value })} /></label>
-                    <label><span>Kiralama Tarihi</span><input type="date" value={contractForm.kiralamaTarihi} onChange={(event) => setContractForm({ ...contractForm, kiralamaTarihi: event.target.value })} /></label>
+                    <label><span>Kiralama Tarihi <span className="required">*</span></span><input type="date" value={contractForm.kiralamaTarihi} onChange={(event) => setContractForm({ ...contractForm, kiralamaTarihi: event.target.value })} /></label>
                     <label><span>Başlangıç KM</span><input type="number" value={contractForm.baslangicKm} onChange={(event) => setContractForm({ ...contractForm, baslangicKm: event.target.value })} /></label>
                     <label><span>Dönüş KM</span><input type="number" value={contractForm.donusKm} onChange={(event) => setContractForm({ ...contractForm, donusKm: event.target.value })} /></label>
-                    <label><span>Kira Süresi (Gün)</span><input type="number" value={contractForm.kiraSuresiGun} onChange={(event) => setContractForm({ ...contractForm, kiraSuresiGun: event.target.value })} /></label>
-                    <label><span>Kira Bedeli (Günlük/KDV Hariç)</span><input type="number" value={contractForm.kiraBedeliGunlukKdvHaric} onChange={(event) => setContractForm({ ...contractForm, kiraBedeliGunlukKdvHaric: event.target.value })} /></label>
+                    <label><span>Kira Süresi (Gün) <span className="required">*</span></span><input type="number" value={contractForm.kiraSuresiGun} onChange={(event) => setContractForm({ ...contractForm, kiraSuresiGun: event.target.value })} /></label>
+                    <label><span>Kira Bedeli (Günlük/KDV Hariç) <span className="required">*</span></span><input type="number" value={contractForm.kiraBedeliGunlukKdvHaric} onChange={(event) => setContractForm({ ...contractForm, kiraBedeliGunlukKdvHaric: event.target.value })} /></label>
                     <label><span>Lastik</span><input value={contractForm.lastik} onChange={(event) => setContractForm({ ...contractForm, lastik: event.target.value })} /></label>
                   </div>
                   <button type="submit" className="primary" disabled={savingContract}>{savingContract ? 'Kaydediliyor...' : 'Kaydet'}</button>
