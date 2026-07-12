@@ -1,0 +1,87 @@
+package com.nikelaj.arac_kayit.service;
+
+import com.nikelaj.arac_kayit.dto.VehicleRequest;
+import com.nikelaj.arac_kayit.dto.VehicleResponse;
+import com.nikelaj.arac_kayit.entity.VehicleSpecifications;
+import com.nikelaj.arac_kayit.entity.VehicleStatus;
+import com.nikelaj.arac_kayit.exception.DuplicatePlakaException;
+import com.nikelaj.arac_kayit.exception.VehicleNotFoundException;
+import com.nikelaj.arac_kayit.util.PlakaUtils;
+import com.nikelaj.arac_kayit.entity.Vehicle;
+import com.nikelaj.arac_kayit.mapper.VehicleMapper;
+import com.nikelaj.arac_kayit.repo.ContractInfoRepo;
+import com.nikelaj.arac_kayit.repo.MaintenanceRecordRepo;
+import com.nikelaj.arac_kayit.repo.VehicleRepo;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+
+@Service
+@RequiredArgsConstructor
+public class VehicleService {
+
+    private final VehicleRepo vehicleRepo;
+    private final MaintenanceRecordRepo maintenanceRecordRepo;
+    private final ContractInfoRepo contractInfoRepo;
+    private final VehicleMapper vehicleMapper;
+
+    @Transactional(readOnly = true)
+    public VehicleResponse findVehicleById(Long id) {
+        return vehicleMapper.toResponse(vehicleRepo.findById(id)
+                .orElseThrow(() -> VehicleNotFoundException.byId(id))
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public VehicleResponse findVehicleByPlaka(String plaka) {
+        String normalized = PlakaUtils.normalize(plaka);
+        return vehicleMapper.toResponse(
+                vehicleRepo.findByPlaka(PlakaUtils.normalize(normalized))
+                        .orElseThrow(() -> VehicleNotFoundException.byPlaka(normalized))
+        );
+    }
+
+    @Transactional
+    public VehicleResponse saveVehicle(VehicleRequest vehicleRequest) throws DuplicatePlakaException {
+        if(vehicleRepo.existsByPlaka(PlakaUtils.normalize(vehicleRequest.plaka())))
+            throw new DuplicatePlakaException(vehicleRequest.plaka());
+        Vehicle vehicle = vehicleMapper.toEntity(vehicleRequest);
+        return vehicleMapper.toResponse(vehicleRepo.save(vehicle));
+    }
+
+    @Transactional
+    public VehicleResponse updateVehicle(VehicleRequest vehicleRequest, Long vehicleId) {
+        Vehicle vehicle = vehicleRepo.findById(vehicleId)
+                .orElseThrow(() -> VehicleNotFoundException.byId(vehicleId));
+        String normalized = PlakaUtils.normalize(vehicleRequest.plaka());
+        vehicleRepo.findByPlaka(normalized)
+                .filter(existing -> !existing.getId().equals(vehicleId))
+                .ifPresent(existing -> { throw new DuplicatePlakaException(normalized); });
+        vehicleMapper.updateEntityFromRequest(vehicleRequest, vehicle);
+        return vehicleMapper.toResponse(vehicle);
+    }
+
+    @Transactional
+    public void deleteVehicle(Long vehicleId) throws VehicleNotFoundException {
+        if(!vehicleRepo.existsById(vehicleId))
+            throw VehicleNotFoundException.byId(vehicleId);
+        vehicleRepo.deleteById(vehicleId);
+    }
+
+    // VehicleService.java — eklenecek metod
+    @Transactional(readOnly = true)
+    public List<VehicleResponse> searchVehicles(String plaka, Integer modelYili, VehicleStatus durum) {
+        Specification<Vehicle> spec = Specification
+                .where(VehicleSpecifications.hasPlaka(plaka))
+                .and(VehicleSpecifications.hasModelYili(modelYili))
+                .and(VehicleSpecifications.hasDurum(durum));
+        return vehicleRepo.findAll(spec).stream()
+                .map(vehicleMapper::toResponse)
+                .toList();
+    }
+
+
+}
