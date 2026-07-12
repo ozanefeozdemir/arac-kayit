@@ -220,14 +220,21 @@ function App() {
         durum: result.durum as VehicleRequest['durum'],
       })
       setIsEditing(true)
+      setFormErrors({})
       setBanner({ type: 'success', title: isEditing ? 'Kayıt güncellendi.' : 'Kayıt başarıyla oluşturuldu.' })
       await loadVehicles()
     } catch (error: any) {
       const serverErrors = error?.response?.data?.errors
-      if (serverErrors) {
-        setFormErrors(serverErrors)
+      if (serverErrors && typeof serverErrors === 'object') {
+        setFormErrors(serverErrors as Record<string, string>)
       } else {
-        setBanner({ type: 'error', title: error?.response?.data?.title ?? 'İşlem başarısız oldu.', message: error?.response?.data?.detail ?? 'Lütfen tekrar deneyin.' })
+        const detail = error?.response?.data?.detail
+        const title = error?.response?.data?.title
+        if (title === 'Plaka Çakışması' && detail) {
+          setFormErrors({ plaka: detail })
+        } else {
+          setBanner({ type: 'error', title: title ?? 'İşlem başarısız oldu.', message: detail ?? 'Lütfen tekrar deneyin.' })
+        }
       }
     } finally {
       setSavingVehicle(false)
@@ -373,9 +380,14 @@ function App() {
     <div className="app-shell">
       {banner ? <Bildirim type={banner.type} title={banner.title} message={banner.message} /> : null}
       <section className="panel">
-        <div className="panel-header">
-          <h1>Araç Kayıt Sistemi</h1>
-          <p>Filtreleyin, listeleyin ve araç detaylarını yönetin.</p>
+        <div className="panel-header app-header">
+          <div className="app-title-group">
+            <img src="/src/assets/Logo.jpeg" alt="Araç kayıt logosu" className="app-logo" />
+            <div>
+              <h1>Araç Kayıt Sistemi</h1>
+              <p>Filtreleyin, listeleyin ve araç detaylarını yönetin.</p>
+            </div>
+          </div>
         </div>
         <div className="filters-row">
           <label>

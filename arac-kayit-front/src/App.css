@@ -2,6 +2,9 @@
 .panel { background: #fff; border: 1px solid #dce2ea; border-radius: 10px; padding: 20px; box-shadow: 0 1px 2px rgba(0,0,0,0.03); }
 .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; gap: 12px; }
 .panel-header.inline { align-items: center; }
+.app-header { justify-content: flex-start; }
+.app-title-group { display: flex; align-items: center; gap: 16px; }
+.app-logo { width: 72px; height: 72px; object-fit: cover; border-radius: 16px; border: 1px solid #dce2ea; box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08); background: #fff; }
 .panel-actions { display: flex; align-items: center; gap: 12px; }
 .required { color: #dc2626; margin-left: 4px; }
 .file-upload { cursor: pointer; }
