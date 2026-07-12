@@ -382,7 +382,7 @@ function App() {
       <section className="panel">
         <div className="panel-header app-header">
           <div className="app-title-group">
-            <img src="/src/assets/Logo.jpeg" alt="Araç kayıt logosu" className="app-logo" />
+            <img src="/Logo.jpeg" alt="Araç kayıt logosu" className="app-logo" />
             <div>
               <h1>Araç Kayıt Sistemi</h1>
               <p>Filtreleyin, listeleyin ve araç detaylarını yönetin.</p>
