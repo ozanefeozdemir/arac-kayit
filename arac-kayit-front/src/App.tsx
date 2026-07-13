@@ -384,7 +384,7 @@ function App() {
           <div className="app-title-group">
             <img src="/Logo.jpeg" alt="Araç kayıt logosu" className="app-logo" />
             <div>
-              <h1>Araç Kayıt Sistemi</h1>
+              <h1>Nikelaj Oto</h1>
               <p>Filtreleyin, listeleyin ve araç detaylarını yönetin.</p>
             </div>
           </div>
