@@ -9,8 +9,9 @@ import java.util.List;
 import java.util.Optional;
 
 public interface VehicleRepo extends JpaRepository<Vehicle, Long>, JpaSpecificationExecutor<Vehicle> {
-    Optional<Vehicle> findByPlaka(String plaka);
-    boolean existsByPlaka(String plaka);
+
+    Optional<Vehicle> findFirstByPlakaAndDurum(String plaka, VehicleStatus durum);
+    boolean existsByPlakaAndDurum(String plaka,  VehicleStatus durum);
     List<Vehicle> findByDurum(VehicleStatus durum);
 
 }

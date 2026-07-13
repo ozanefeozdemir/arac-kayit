@@ -5,6 +5,7 @@ import com.nikelaj.arac_kayit.dto.ContractInfoRequest;
 import com.nikelaj.arac_kayit.dto.ContractInfoResponse;
 import com.nikelaj.arac_kayit.entity.ContractInfo;
 import com.nikelaj.arac_kayit.entity.Vehicle;
+import com.nikelaj.arac_kayit.entity.VehicleStatus;
 import com.nikelaj.arac_kayit.exception.ContractNotFoundException;
 import com.nikelaj.arac_kayit.exception.DuplicatePlakaException;
 import com.nikelaj.arac_kayit.exception.VehicleNotFoundException;
@@ -30,7 +31,7 @@ public class ContractInfoService {
     @Transactional(readOnly = true)
     public List<ContractInfoResponse> findAllByPlaka(String plaka){
         String normalized = PlakaUtils.normalize(plaka);
-        if(!vehicleRepo.existsByPlaka(normalized))
+        if(!vehicleRepo.existsByPlakaAndDurum(normalized, VehicleStatus.AKTIF))
             throw new VehicleNotFoundException(normalized);
         List<ContractInfo> contracts = contractInfoRepo.findByVehicle_Plaka(normalized);
         return contractInfoMapper.toResponseList(contracts);

@@ -19,5 +19,8 @@ public record VehicleResponse(
         String ekspertiz,
         VehicleStatus durum,
         LocalDateTime createdAt,
-        LocalDateTime updatedAt
+        LocalDateTime updatedAt,
+        String tescilBelgeNo,
+        String pasifNedeni,
+        LocalDate satisTarihi
 ) {}

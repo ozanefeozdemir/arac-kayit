@@ -13,6 +13,7 @@ import java.util.List;
         name = "araclar",
         indexes = {
                 @Index(name = "idx_arac_durum", columnList = "durum"),
+                @Index(name = "idx_arac_durum", columnList = "durum"),
                 @Index(name = "idx_arac_model_yili", columnList = "model_yili")
         }
 )
@@ -72,6 +73,15 @@ public class Vehicle extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private VehicleStatus durum;
+
+    @Column(name = "tescil_belge_no", length = 50)
+    private String tescilBelgeNo;
+
+    @Column(name = "pasif_nedeni", length = 255)
+    private String pasifNedeni;
+
+    @Column(name = "satis_tarihi")
+    private LocalDate satisTarihi;
 
     @Builder.Default
     @OneToMany(mappedBy = "vehicle", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)

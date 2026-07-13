@@ -4,6 +4,7 @@ import com.nikelaj.arac_kayit.dto.MaintenanceRecordRequest;
 import com.nikelaj.arac_kayit.dto.MaintenanceRecordResponse;
 import com.nikelaj.arac_kayit.entity.MaintenanceRecord;
 import com.nikelaj.arac_kayit.entity.Vehicle;
+import com.nikelaj.arac_kayit.entity.VehicleStatus;
 import com.nikelaj.arac_kayit.exception.MaintenanceRecordNotFoundException;
 import com.nikelaj.arac_kayit.exception.VehicleNotFoundException;
 import com.nikelaj.arac_kayit.mapper.MaintenanceRecordMapper;
@@ -32,9 +33,9 @@ public class MaintenanceRecordService {
     }
 
     @Transactional(readOnly = true)
-    public List<MaintenanceRecordResponse> findByPlaka(String plaka) {
+    public List<MaintenanceRecordResponse> findByPlakaAndDurum(String plaka) {
         String normalized = PlakaUtils.normalize(plaka);
-        if(!vehicleRepo.existsByPlaka(normalized))
+        if(!vehicleRepo.existsByPlakaAndDurum(normalized, VehicleStatus.AKTIF))
             throw new VehicleNotFoundException(normalized);
         List<MaintenanceRecord> maintenanceRecord = maintenanceRecordRepo.findByVehicle_Plaka(normalized);
         return maintenanceRecordMapper.toResponseList(maintenanceRecord);

@@ -39,14 +39,14 @@ public class VehicleService {
     public VehicleResponse findVehicleByPlaka(String plaka) {
         String normalized = PlakaUtils.normalize(plaka);
         return vehicleMapper.toResponse(
-                vehicleRepo.findByPlaka(PlakaUtils.normalize(normalized))
+                vehicleRepo.findFirstByPlakaAndDurum(PlakaUtils.normalize(normalized), VehicleStatus.AKTIF)
                         .orElseThrow(() -> VehicleNotFoundException.byPlaka(normalized))
         );
     }
 
     @Transactional
     public VehicleResponse saveVehicle(VehicleRequest vehicleRequest) throws DuplicatePlakaException {
-        if(vehicleRepo.existsByPlaka(PlakaUtils.normalize(vehicleRequest.plaka())))
+        if(vehicleRepo.existsByPlakaAndDurum(PlakaUtils.normalize(vehicleRequest.plaka()),  VehicleStatus.AKTIF))
             throw new DuplicatePlakaException(vehicleRequest.plaka());
         Vehicle vehicle = vehicleMapper.toEntity(vehicleRequest);
         return vehicleMapper.toResponse(vehicleRepo.save(vehicle));
@@ -57,7 +57,7 @@ public class VehicleService {
         Vehicle vehicle = vehicleRepo.findById(vehicleId)
                 .orElseThrow(() -> VehicleNotFoundException.byId(vehicleId));
         String normalized = PlakaUtils.normalize(vehicleRequest.plaka());
-        vehicleRepo.findByPlaka(normalized)
+        vehicleRepo.findFirstByPlakaAndDurum(normalized, VehicleStatus.AKTIF)
                 .filter(existing -> !existing.getId().equals(vehicleId))
                 .ifPresent(existing -> { throw new DuplicatePlakaException(normalized); });
         vehicleMapper.updateEntityFromRequest(vehicleRequest, vehicle);

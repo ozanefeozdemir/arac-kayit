@@ -21,7 +21,7 @@ public class MaintenanceRecordController {
 
     @GetMapping("/plaka/{plaka}")
     public ResponseEntity<List<MaintenanceRecordResponse>> getMaintenanceRecordByVehicleId(@PathVariable String plaka){
-        return ResponseEntity.ok(maintenanceRecordService.findByPlaka(plaka));
+        return ResponseEntity.ok(maintenanceRecordService.findByPlakaAndDurum(plaka));
     }
 
     @GetMapping("/{id}")

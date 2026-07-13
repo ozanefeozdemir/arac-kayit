@@ -45,5 +45,14 @@ public record VehicleRequest(
         String ekspertiz,
 
         @NotNull(message = "Araç durumu seçilmelidir")
-        VehicleStatus durum
+        VehicleStatus durum,
+
+        @NotNull(message = "Muayene tarihi zorunludur")
+        String tescilBelgeNo,
+
+        @NotNull(message = "Muayene tarihi zorunludur")
+        String pasifNedeni,
+        
+        @NotNull(message = "Muayene tarihi zorunludur")
+        LocalDate satisTarihi
 ) {}

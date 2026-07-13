@@ -461,9 +461,9 @@ function App() {
           <div className="panel-actions">
             <label className="file-upload">
               <span>CSV İçeri Aktar</span>
-              <input type="file" accept=".csv,text/csv" onChange={handleCsvImport} />
+              <input disabled type="file" accept=".csv,text/csv" onChange={handleCsvImport} />
             </label>
-            <button type="button" className="secondary" onClick={handleCsvExport}>CSV Dışa Aktar</button>
+            <button disabled type="button" className="secondary" onClick={handleCsvExport}>CSV Dışa Aktar</button>
             {!isVehicleFormVisible ? <button type="button" className="primary" onClick={handleVehicleFormOpen}>Formu Aç</button> : null}
           </div>
         </div>
