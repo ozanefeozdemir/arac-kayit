@@ -22,6 +22,9 @@ const emptyVehicleForm: VehicleRequest = {
   lastikBilgisi: '',
   ekspertiz: '',
   durum: 'AKTIF',
+  tescilBelgeNo: '',
+  pasifNedeni: '',
+  satisTarihi: getTodayString(),
 }
 
 const statusOptions = [
@@ -273,6 +276,9 @@ function App() {
       lastikBilgisi: vehicle.lastikBilgisi ?? '',
       ekspertiz: vehicle.ekspertiz ?? '',
       durum: vehicle.durum as VehicleRequest['durum'],
+      tescilBelgeNo: vehicle.tescilBelgeNo ?? '',
+      pasifNedeni: vehicle.pasifNedeni ?? '',
+      satisTarihi: vehicle.satisTarihi ?? '',
     })
     setIsEditing(true)
     setFormErrors({})
@@ -431,6 +437,9 @@ function App() {
                 <th>Lastik</th>
                 <th>Tescil Tarihi</th>
                 <th>Durumu</th>
+                <th>Tescil Belge No</th>
+                <th>Pasif Nedeni</th>
+                <th>Satış Tarihi</th>
               </tr>
             </thead>
             <tbody>
@@ -445,6 +454,9 @@ function App() {
                   <td>{vehicle.lastikBilgisi ?? '-'}</td>
                   <td>{formatDate(vehicle.tescilTarihi)}</td>
                   <td>{vehicle.durum}</td>
+                  <td>{vehicle.tescilBelgeNo ?? '-'}</td>
+                  <td>{vehicle.pasifNedeni ?? '-'}</td>
+                  <td>{vehicle.satisTarihi ? formatDate(vehicle.satisTarihi) : '-'}</td>
                 </tr>
               ))}
             </tbody>
@@ -531,6 +543,18 @@ function App() {
                   {statusOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
                 </select>
                 {formErrors.durum ? <small className="error-text">{formErrors.durum}</small> : null}
+              </label>
+              <label>
+                <span>Tescil Belge No</span>
+                <input value={vehicleForm.tescilBelgeNo ?? ''} onChange={(event) => setVehicleForm({ ...vehicleForm, tescilBelgeNo: event.target.value })} maxLength={50} />
+              </label>
+              <label>
+                <span>Pasif Nedeni</span>
+                <textarea value={vehicleForm.pasifNedeni ?? ''} onChange={(event) => setVehicleForm({ ...vehicleForm, pasifNedeni: event.target.value })} />
+              </label>
+              <label>
+                <span>Satış Tarihi</span>
+                <input type="date" max={getTodayString()} value={vehicleForm.satisTarihi ?? getTodayString()} onChange={(event) => setVehicleForm({ ...vehicleForm, satisTarihi: event.target.value })} />
               </label>
             </div>
             <div className="actions-row">

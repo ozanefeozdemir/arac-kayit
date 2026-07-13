@@ -12,6 +12,9 @@ export interface VehicleRequest {
   lastikBilgisi: string | null
   ekspertiz: string | null
   durum: VehicleStatusValue
+  tescilBelgeNo: string | null
+  pasifNedeni: string | null
+  satisTarihi: string | null
 }
 
 export interface VehicleResponse {
@@ -29,4 +32,7 @@ export interface VehicleResponse {
   durum: VehicleStatusValue | string
   createdAt: string
   updatedAt: string
+  tescilBelgeNo: string | null
+  pasifNedeni: string | null
+  satisTarihi: string | null
 }

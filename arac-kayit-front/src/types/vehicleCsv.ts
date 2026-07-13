@@ -12,6 +12,9 @@ const csvHeaders = [
   'lastikBilgisi',
   'ekspertiz',
   'durum',
+  'tescilBelgeNo',
+  'pasifNedeni',
+  'satisTarihi',
 ] as const
 
 export const buildVehicleCsv = (vehicle: Partial<VehicleRequest> | Record<string, string | number | null | undefined>) => {
@@ -47,5 +50,8 @@ export const parseVehicleCsv = (csvContent: string): Partial<VehicleRequest> => 
     lastikBilgisi: String(parsed.lastikBilgisi ?? '') || null,
     ekspertiz: String(parsed.ekspertiz ?? '') || null,
     durum: String(parsed.durum ?? 'AKTIF') as VehicleRequest['durum'],
+    tescilBelgeNo: String(parsed.tescilBelgeNo ?? '') || null,
+    pasifNedeni: String(parsed.pasifNedeni ?? '') || null,
+    satisTarihi: String(parsed.satisTarihi ?? '') || null,
   }
 }
