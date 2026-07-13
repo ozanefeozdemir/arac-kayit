@@ -35,7 +35,7 @@ public class MaintenanceRecordService {
     @Transactional(readOnly = true)
     public List<MaintenanceRecordResponse> findByPlakaAndDurum(String plaka) {
         String normalized = PlakaUtils.normalize(plaka);
-        if(!vehicleRepo.existsByPlakaAndDurum(normalized, VehicleStatus.AKTIF))
+        if(!vehicleRepo.existsByPlaka(normalized))
             throw new VehicleNotFoundException(normalized);
         List<MaintenanceRecord> maintenanceRecord = maintenanceRecordRepo.findByVehicle_Plaka(normalized);
         return maintenanceRecordMapper.toResponseList(maintenanceRecord);

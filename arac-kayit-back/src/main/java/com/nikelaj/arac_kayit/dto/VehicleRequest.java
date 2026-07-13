@@ -53,6 +53,5 @@ public record VehicleRequest(
         @NotNull(message = "Muayene tarihi zorunludur")
         String pasifNedeni,
         
-        @NotNull(message = "Muayene tarihi zorunludur")
         LocalDate satisTarihi
 ) {}

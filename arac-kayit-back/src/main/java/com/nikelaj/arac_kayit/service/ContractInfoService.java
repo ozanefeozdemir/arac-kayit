@@ -31,7 +31,7 @@ public class ContractInfoService {
     @Transactional(readOnly = true)
     public List<ContractInfoResponse> findAllByPlaka(String plaka){
         String normalized = PlakaUtils.normalize(plaka);
-        if(!vehicleRepo.existsByPlakaAndDurum(normalized, VehicleStatus.AKTIF))
+        if(!vehicleRepo.existsByPlaka(normalized))
             throw new VehicleNotFoundException(normalized);
         List<ContractInfo> contracts = contractInfoRepo.findByVehicle_Plaka(normalized);
         return contractInfoMapper.toResponseList(contracts);

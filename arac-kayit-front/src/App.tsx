@@ -9,6 +9,7 @@ import type { ContractInfoResponse } from './types/contract'
 import { formatCurrency, formatDate, getTodayString, normalizePlaka } from './utils/dateFormat'
 import { buildVehicleCsv, parseVehicleCsv } from './types/vehicleCsv'
 import Bildirim from './components/Bildirim'
+import CurrencyInput from 'react-currency-input-field'
 
 const emptyVehicleForm: VehicleRequest = {
   plaka: '',
@@ -53,7 +54,14 @@ function App() {
   const [filters, setFilters] = useState({ plaka: '', modelYili: '', durum: '' })
   const [formErrors, setFormErrors] = useState<Record<string, string>>({})
   const [banner, setBanner] = useState<{ type: 'error' | 'success'; title: string; message?: string } | null>(null)
-  const [isVehicleFormVisible, setIsVehicleFormVisible] = useState(false)
+  const [page, setPage] = useState(0)
+  const [totalPages, setTotalPages] = useState(0)
+  const [totalElements, setTotalElements] = useState(0)
+  const pageSize = 10
+
+  // Form görünürlüğü yerine modal kontrol state'i eklendi
+  const [isModalOpen, setIsModalOpen] = useState(false)
+
   const [maintenanceForm, setMaintenanceForm] = useState({ bakimTarihi: getTodayString(), yapilanIslemler: '', maliyet: '' })
   const [contractForm, setContractForm] = useState({
     sozlesmeTarihi: getTodayString(),
@@ -75,7 +83,7 @@ function App() {
   })
 
   useEffect(() => {
-    void loadVehicles()
+    void loadVehicles(0)
   }, [])
 
   useEffect(() => {
@@ -92,15 +100,36 @@ function App() {
     }
   }, [banner])
 
-  const loadVehicles = async () => {
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && isModalOpen) {
+        setIsModalOpen(false)
+      }
+    }
+
+    if (isModalOpen) {
+      window.addEventListener('keydown', handleKeyDown)
+    }
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [isModalOpen])
+
+  const loadVehicles = async (currentPage = 0) => {
     setLoadingVehicles(true)
     try {
       const data = await getVehicles({
         plaka: filters.plaka || undefined,
         modelYili: filters.modelYili ? Number(filters.modelYili) : undefined,
         durum: filters.durum || undefined,
+        page: currentPage,
+        size: pageSize
       })
-      setVehicles(data)
+      setVehicles(data.content)
+      setTotalPages(data.totalPages)
+      setTotalElements(data.totalElements)
+      setPage(currentPage)
     } catch {
       setBanner({
         type: 'error',
@@ -133,17 +162,7 @@ function App() {
     setIsEditing(false)
     setActiveTab('vehicle')
     setFormErrors({})
-    setIsVehicleFormVisible(true)
-    window.setTimeout(() => {
-      document.getElementById('vehicle-form-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    }, 0)
-  }
-
-  const handleVehicleFormOpen = () => {
-    setIsVehicleFormVisible(true)
-    window.setTimeout(() => {
-      document.getElementById('vehicle-form-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    }, 0)
+    setIsModalOpen(true) // Modal olarak açılmasını sağlıyoruz
   }
 
   const handleCsvImport = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -163,10 +182,7 @@ function App() {
       setSelectedVehicle(null)
       setIsEditing(false)
       setFormErrors({})
-      setIsVehicleFormVisible(true)
-      window.setTimeout(() => {
-        document.getElementById('vehicle-form-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-      }, 0)
+      setIsModalOpen(true)
       setBanner({ type: 'success', title: 'CSV içeriği yüklendi. Formu inceleyip kaydedebilirsiniz.' })
     }
     reader.readAsText(file)
@@ -200,6 +216,8 @@ function App() {
     setFormErrors(nextErrors)
     return Object.keys(nextErrors).length === 0
   }
+
+
 
   const handleVehicleSubmit = async (event: FormEvent) => {
     event.preventDefault()
@@ -250,6 +268,7 @@ function App() {
     try {
       await deleteVehicle(selectedVehicle.id)
       setBanner({ type: 'success', title: 'Araç kaydı silindi.' })
+      setIsModalOpen(false) // Silme sonrası modalı kapatıyoruz
       setSelectedVehicle(null)
       setVehicleForm(emptyVehicleForm)
       setIsEditing(false)
@@ -263,7 +282,7 @@ function App() {
 
   const onRowSelect = (vehicle: VehicleResponse) => {
     setSelectedVehicle(vehicle)
-    setIsVehicleFormVisible(true)
+    setIsModalOpen(true) // Seçim yapıldığında modal açılıyor
     setVehicleForm({
       plaka: vehicle.plaka,
       marka: vehicle.marka,
@@ -380,8 +399,7 @@ function App() {
     }
   }
 
-  const summaryText = useMemo(() => `${vehicles.length} araç bulundu`, [vehicles.length])
-
+  const summaryText = useMemo(() => `${totalElements} araç bulundu`, [totalElements])
   return (
     <div className="app-shell">
       {banner ? <Bildirim type={banner.type} title={banner.title} message={banner.message} /> : null}
@@ -411,9 +429,15 @@ function App() {
               {statusOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
             </select>
           </label>
-          <button type="button" onClick={() => void loadVehicles()} disabled={loadingVehicles}>{loadingVehicles ? 'Yükleniyor...' : 'Listele'}</button>
-          <button type="button" className="secondary" onClick={() => { setFilters({ plaka: '', modelYili: '', durum: '' }); void loadVehicles() }}>Temizle</button>
-        </div>
+          <button type="button" onClick={() => void loadVehicles(0)} disabled={loadingVehicles}>
+            {loadingVehicles ? 'Yükleniyor...' : 'Listele'}
+          </button>
+          <button type="button" className="secondary" onClick={() => {
+            setFilters({ plaka: '', modelYili: '', durum: '' })
+            void loadVehicles(0)
+          }}>
+            Temizle
+          </button></div>
       </section>
 
       <section className="panel">
@@ -461,114 +485,141 @@ function App() {
               ))}
             </tbody>
           </table>
+
+        )}
+        {totalPages > 1 && (
+          <div className="pagination-controls" style={{ display: 'flex', justifyContent: 'center', gap: '15px', marginTop: '1rem', alignItems: 'center' }}>
+            <button
+              type="button"
+              className="secondary small"
+              disabled={page === 0 || loadingVehicles}
+              onClick={() => void loadVehicles(page - 1)}
+            >
+              Önceki
+            </button>
+
+            <span className="muted" style={{ fontSize: '0.9rem' }}>
+              Sayfa {page + 1} / {totalPages}
+            </span>
+
+            <button
+              type="button"
+              className="secondary small"
+              disabled={page >= totalPages - 1 || loadingVehicles}
+              onClick={() => void loadVehicles(page + 1)}
+            >
+              Sonraki
+            </button>
+          </div>
         )}
       </section>
 
-      <section className="panel" id="vehicle-form-section">
-        <div className="panel-header inline">
-          <div>
-            <h2>Araç Kayıt Formu</h2>
-            <p className="muted">CSV import/export ile toplu işlem yapın.</p>
-          </div>
-          <div className="panel-actions">
-            <label className="file-upload">
-              <span>CSV İçeri Aktar</span>
-              <input disabled type="file" accept=".csv,text/csv" onChange={handleCsvImport} />
-            </label>
-            <button disabled type="button" className="secondary" onClick={handleCsvExport}>CSV Dışa Aktar</button>
-            {!isVehicleFormVisible ? <button type="button" className="primary" onClick={handleVehicleFormOpen}>Formu Aç</button> : null}
-          </div>
-        </div>
-        <div className="tabs">
-          <button type="button" className={activeTab === 'vehicle' ? 'tab active' : 'tab'} onClick={() => setActiveTab('vehicle')}>Araç Bilgisi</button>
-          <button type="button" className={activeTab === 'maintenance' ? 'tab active' : 'tab'} disabled={!selectedVehicle} onClick={() => setActiveTab('maintenance')} title={!selectedVehicle ? 'Önce bir araç seçin' : ''}>Bakım Bilgisi</button>
-          <button type="button" className={activeTab === 'contract' ? 'tab active' : 'tab'} disabled={!selectedVehicle} onClick={() => setActiveTab('contract')} title={!selectedVehicle ? 'Önce bir araç seçin' : ''}>Sözleşme Bilgisi</button>
-        </div>
+      {/* MODAL YAPISI EKLENDİ */}
+      {isModalOpen && (
+        <div className="modal-overlay" onClick={() => setIsModalOpen(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <button type="button" className="modal-close-btn" onClick={() => setIsModalOpen(false)}>&times;</button>
 
-        {activeTab === 'vehicle' && isVehicleFormVisible ? (
-          <form onSubmit={handleVehicleSubmit} className="vehicle-form">
-            {!selectedVehicle ? <p className="empty">Detayları görmek için listeden bir araç seçin veya yeni araç ekleyin.</p> : null}
-            <div className="form-grid">
-              <label>
-                <span>Plaka <span className="required">*</span></span>
-                <input value={vehicleForm.plaka} onChange={(event) => setVehicleForm({ ...vehicleForm, plaka: event.target.value.toUpperCase() })} maxLength={20} />
-                {formErrors.plaka ? <small className="error-text">{formErrors.plaka}</small> : null}
-              </label>
-              <label>
-                <span>Marka <span className="required">*</span></span>
-                <input value={vehicleForm.marka} onChange={(event) => setVehicleForm({ ...vehicleForm, marka: event.target.value })} maxLength={50} />
-                {formErrors.marka ? <small className="error-text">{formErrors.marka}</small> : null}
-              </label>
-              <label>
-                <span>Model <span className="required">*</span></span>
-                <input value={vehicleForm.model} onChange={(event) => setVehicleForm({ ...vehicleForm, model: event.target.value })} maxLength={50} />
-                {formErrors.model ? <small className="error-text">{formErrors.model}</small> : null}
-              </label>
-              <label>
-                <span>Model Yılı <span className="required">*</span></span>
-                <input type="number" value={vehicleForm.modelYili} onChange={(event) => setVehicleForm({ ...vehicleForm, modelYili: Number(event.target.value) })} min="1900" max={new Date().getFullYear()} />
-                {formErrors.modelYili ? <small className="error-text">{formErrors.modelYili}</small> : null}
-              </label>
-              <label>
-                <span>Tipi <span className="required">*</span></span>
-                <input value={vehicleForm.tipi} onChange={(event) => setVehicleForm({ ...vehicleForm, tipi: event.target.value })} maxLength={100} />
-                {formErrors.tipi ? <small className="error-text">{formErrors.tipi}</small> : null}
-              </label>
-              <label>
-                <span>KM</span>
-                <input type="number" value={vehicleForm.km} onChange={(event) => setVehicleForm({ ...vehicleForm, km: Number(event.target.value) })} min="0" max="999999" />
-                {formErrors.km ? <small className="error-text">{formErrors.km}</small> : null}
-              </label>
-              <label>
-                <span>Muayene Tarihi <span className="required">*</span></span>
-                <input type="date" max={getTodayString()} value={vehicleForm.muayeneTarihi} onChange={(event) => setVehicleForm({ ...vehicleForm, muayeneTarihi: event.target.value })} />
-                {formErrors.muayeneTarihi ? <small className="error-text">{formErrors.muayeneTarihi}</small> : null}
-              </label>
-              <label>
-                <span>Ekspertiz</span>
-                <textarea value={vehicleForm.ekspertiz ?? ''} onChange={(event) => setVehicleForm({ ...vehicleForm, ekspertiz: event.target.value })} />
-              </label>
-              <label>
-                <span>Lastik</span>
-                <input value={vehicleForm.lastikBilgisi ?? ''} onChange={(event) => setVehicleForm({ ...vehicleForm, lastikBilgisi: event.target.value })} maxLength={50} />
-              </label>
-              <label>
-                <span>Tescil Tarihi <span className="required">*</span></span>
-                <input type="date" max={getTodayString()} value={vehicleForm.tescilTarihi} onChange={(event) => setVehicleForm({ ...vehicleForm, tescilTarihi: event.target.value })} />
-                {formErrors.tescilTarihi ? <small className="error-text">{formErrors.tescilTarihi}</small> : null}
-              </label>
-              <label>
-                <span>Durumu <span className="required">*</span></span>
-                <select value={vehicleForm.durum} onChange={(event) => setVehicleForm({ ...vehicleForm, durum: event.target.value as VehicleRequest['durum'] })}>
-                  {statusOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-                </select>
-                {formErrors.durum ? <small className="error-text">{formErrors.durum}</small> : null}
-              </label>
-              <label>
-                <span>Tescil Belge No</span>
-                <input value={vehicleForm.tescilBelgeNo ?? ''} onChange={(event) => setVehicleForm({ ...vehicleForm, tescilBelgeNo: event.target.value })} maxLength={50} />
-              </label>
-              <label>
-                <span>Pasif Nedeni</span>
-                <textarea value={vehicleForm.pasifNedeni ?? ''} onChange={(event) => setVehicleForm({ ...vehicleForm, pasifNedeni: event.target.value })} />
-              </label>
-              <label>
-                <span>Satış Tarihi</span>
-                <input type="date" max={getTodayString()} value={vehicleForm.satisTarihi ?? getTodayString()} onChange={(event) => setVehicleForm({ ...vehicleForm, satisTarihi: event.target.value })} />
-              </label>
+            <div className="panel-header inline">
+              <div>
+                <h2>{isEditing && selectedVehicle ? `${selectedVehicle.plaka} - Araç Detayı` : 'Yeni Araç Kayıt Formu'}</h2>
+                <p className="muted">Araç, bakım ve sözleşme bilgilerini yönetin.</p>
+              </div>
+              <div className="panel-actions">
+                <label className="file-upload">
+                  <span>CSV İçeri Aktar</span>
+                  <input disabled type="file" accept=".csv,text/csv" onChange={handleCsvImport} />
+                </label>
+                <button disabled type="button" className="secondary" onClick={handleCsvExport}>CSV Dışa Aktar</button>
+              </div>
             </div>
-            <div className="actions-row">
-              <button type="submit" className="primary" disabled={savingVehicle}>{savingVehicle ? 'Kaydediliyor...' : isEditing ? 'Güncelle' : 'Kaydet'}</button>
-              {isEditing ? <button type="button" className="danger" onClick={handleVehicleDelete} disabled={deletingVehicle}>{deletingVehicle ? 'Siliniyor...' : 'Sil'}</button> : null}
-            </div>
-          </form>
-        ) : null}
 
-        {activeTab === 'maintenance' ? (
-          <div className="tab-content">
-            {selectedVehicle ? <h3>{selectedVehicle.plaka} - Bakım Kayıtları</h3> : <p className="empty">Önce bir araç seçin.</p>}
-            {selectedVehicle ? (
-              <>
+            <div className="tabs">
+              <button type="button" className={activeTab === 'vehicle' ? 'tab active' : 'tab'} onClick={() => setActiveTab('vehicle')}>Araç Bilgisi</button>
+              <button type="button" className={activeTab === 'maintenance' ? 'tab active' : 'tab'} disabled={!selectedVehicle} onClick={() => setActiveTab('maintenance')} title={!selectedVehicle ? 'Önce aracı kaydedin' : ''}>Bakım Bilgisi</button>
+              <button type="button" className={activeTab === 'contract' ? 'tab active' : 'tab'} disabled={!selectedVehicle} onClick={() => setActiveTab('contract')} title={!selectedVehicle ? 'Önce aracı kaydedin' : ''}>Sözleşme Bilgisi</button>
+            </div>
+
+            {activeTab === 'vehicle' ? (
+              <form onSubmit={handleVehicleSubmit} className="vehicle-form">
+                <div className="form-grid">
+                  <label>
+                    <span>Plaka <span className="required">*</span></span>
+                    <input value={vehicleForm.plaka} onChange={(event) => setVehicleForm({ ...vehicleForm, plaka: event.target.value.toUpperCase() })} maxLength={20} placeholder="Örn: 34ABC123" />
+                    {formErrors.plaka ? <small className="error-text">{formErrors.plaka}</small> : null}
+                  </label>
+                  <label>
+                    <span>Marka <span className="required">*</span></span>
+                    <input value={vehicleForm.marka} onChange={(event) => setVehicleForm({ ...vehicleForm, marka: event.target.value })} maxLength={50} placeholder="Örn: Renault" />
+                    {formErrors.marka ? <small className="error-text">{formErrors.marka}</small> : null}
+                  </label>
+                  <label>
+                    <span>Model <span className="required">*</span></span>
+                    <input value={vehicleForm.model} onChange={(event) => setVehicleForm({ ...vehicleForm, model: event.target.value })} maxLength={50} placeholder="Örn: Megane" />
+                    {formErrors.model ? <small className="error-text">{formErrors.model}</small> : null}
+                  </label>
+                  <label>
+                    <span>Model Yılı <span className="required">*</span></span>
+                    <input type="number" value={vehicleForm.modelYili || ''} onChange={(event) => setVehicleForm({ ...vehicleForm, modelYili: Number(event.target.value) })} min="1900" max={new Date().getFullYear()} placeholder="Örn: 2023" />
+                    {formErrors.modelYili ? <small className="error-text">{formErrors.modelYili}</small> : null}
+                  </label>
+                  <label>
+                    <span>Tipi <span className="required">*</span></span>
+                    <input value={vehicleForm.tipi} onChange={(event) => setVehicleForm({ ...vehicleForm, tipi: event.target.value })} maxLength={100} placeholder="Örn: 1.3 TCe Icon" />
+                    {formErrors.tipi ? <small className="error-text">{formErrors.tipi}</small> : null}
+                  </label>
+                  <label>
+                    <span>KM</span>
+                    <input type="number" value={vehicleForm.km || ''} onChange={(event) => setVehicleForm({ ...vehicleForm, km: Number(event.target.value) })} min="0" max="999999" placeholder="Örn: 125000" />
+                    {formErrors.km ? <small className="error-text">{formErrors.km}</small> : null}
+                  </label>
+                  <label>
+                    <span>Muayene Tarihi <span className="required">*</span></span>
+                    <input type="date" max={getTodayString()} value={vehicleForm.muayeneTarihi} onChange={(event) => setVehicleForm({ ...vehicleForm, muayeneTarihi: event.target.value })} />
+                    {formErrors.muayeneTarihi ? <small className="error-text">{formErrors.muayeneTarihi}</small> : null}
+                  </label>
+                  <label>
+                    <span>Ekspertiz</span>
+                    <textarea value={vehicleForm.ekspertiz ?? ''} onChange={(event) => setVehicleForm({ ...vehicleForm, ekspertiz: event.target.value })} placeholder="Değişen/boyalı parçalar, tramer kaydı, güncel hasar durumu vb." />
+                  </label>
+                  <label>
+                    <span>Lastik</span>
+                    <input value={vehicleForm.lastikBilgisi ?? ''} onChange={(event) => setVehicleForm({ ...vehicleForm, lastikBilgisi: event.target.value })} placeholder="Örn: 205x55x16" />
+                  </label>
+                  <label>
+                    <span>Tescil Tarihi <span className="required">*</span></span>
+                    <input type="date" max={getTodayString()} value={vehicleForm.tescilTarihi} onChange={(event) => setVehicleForm({ ...vehicleForm, tescilTarihi: event.target.value })} />
+                    {formErrors.tescilTarihi ? <small className="error-text">{formErrors.tescilTarihi}</small> : null}
+                  </label>
+                  <label>
+                    <span>Durumu <span className="required">*</span></span>
+                    <select value={vehicleForm.durum} onChange={(event) => setVehicleForm({ ...vehicleForm, durum: event.target.value as VehicleRequest['durum'] })}>
+                      {statusOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                    </select>
+                    {formErrors.durum ? <small className="error-text">{formErrors.durum}</small> : null}
+                  </label>
+                  <label>
+                    <span>Tescil Belge No</span>
+                    <input value={vehicleForm.tescilBelgeNo ?? ''} onChange={(event) => setVehicleForm({ ...vehicleForm, tescilBelgeNo: event.target.value })} maxLength={50} placeholder="Örn: AB123456" />
+                  </label>
+                  <label>
+                    <span>Pasif Nedeni</span>
+                    <textarea value={vehicleForm.pasifNedeni ?? ''} onChange={(event) => setVehicleForm({ ...vehicleForm, pasifNedeni: event.target.value })} placeholder="Eğer araç pasife çekildiyse nedenini belirtin (Örn: Kazalı, perte ayrıldı, motor arızası vb.)" />
+                  </label>
+                  <label>
+                    <span>Satış Tarihi</span>
+                    <input type="date" max={getTodayString()} value={vehicleForm.satisTarihi ?? getTodayString()} onChange={(event) => setVehicleForm({ ...vehicleForm, satisTarihi: event.target.value })} />
+                  </label>
+                </div>
+                <div className="actions-row">
+                  <button type="submit" className="primary" disabled={savingVehicle}>{savingVehicle ? 'Kaydediliyor...' : isEditing ? 'Güncelle' : 'Kaydet'}</button>
+                  {isEditing ? <button type="button" className="danger" onClick={handleVehicleDelete} disabled={deletingVehicle}>{deletingVehicle ? 'Siliniyor...' : 'Sil'}</button> : null}
+                </div>
+              </form>
+            ) : null}
+
+            {activeTab === 'maintenance' && selectedVehicle ? (
+              <div className="tab-content">
                 {loadingMaintenance ? <p>Yükleniyor...</p> : maintenanceRecords.length === 0 ? <p className="empty">Bakım kaydı bulunamadı.</p> : (
                   <table>
                     <thead>
@@ -600,25 +651,28 @@ function App() {
                     </label>
                     <label>
                       <span>Yapılan İşlemler <span className="required">*</span></span>
-                      <textarea value={maintenanceForm.yapilanIslemler} onChange={(event) => setMaintenanceForm({ ...maintenanceForm, yapilanIslemler: event.target.value })} />
+                      <textarea placeholder='Ör: Yağ değişimi' value={maintenanceForm.yapilanIslemler} onChange={(event) => setMaintenanceForm({ ...maintenanceForm, yapilanIslemler: event.target.value })} />
                     </label>
                     <label>
                       <span>Ücret</span>
-                      <input type="number" value={maintenanceForm.maliyet} onChange={(event) => setMaintenanceForm({ ...maintenanceForm, maliyet: event.target.value })} />
+                      <CurrencyInput
+                        id="maliyet"
+                        name="maliyet"
+                        placeholder="Örn: 1500"
+                        value={maintenanceForm.maliyet}
+                        suffix=" ₺"
+                        decimalsLimit={2}
+                        onValueChange={(value) => setMaintenanceForm({ ...maintenanceForm, maliyet: value || '' })}
+                      />
                     </label>
                   </div>
                   <button type="submit" className="primary" disabled={savingMaintenance}>{savingMaintenance ? 'Kaydediliyor...' : 'Kaydet'}</button>
                 </form>
-              </>
+              </div>
             ) : null}
-          </div>
-        ) : null}
 
-        {activeTab === 'contract' ? (
-          <div className="tab-content">
-            {selectedVehicle ? <h3>{selectedVehicle.plaka} - Sözleşme Kayıtları</h3> : <p className="empty">Önce bir araç seçin.</p>}
-            {selectedVehicle ? (
-              <>
+            {activeTab === 'contract' && selectedVehicle ? (
+              <div className="tab-content">
                 {loadingContracts ? <p>Yükleniyor...</p> : contractRecords.length === 0 ? <p className="empty">Sözleşme kaydı bulunamadı.</p> : (
                   <table>
                     <thead>
@@ -626,12 +680,11 @@ function App() {
                         <th>Sözleşme Tarihi</th>
                         <th>Araç Kiralayan</th>
                         <th>Yetkili Adı Soyadı</th>
-                        <th>Unvan</th>
                         <th>Kiralama Tarihi</th>
                         <th>Dönüş Tarihi</th>
                         <th>Kira Süresi (Gün)</th>
-                        <th>Kira Bedeli (Günlük/KDV Hariç)</th>
-                        <th>Ödenecek Toplam Tutar</th>
+                        <th>Günlük Bedel</th>
+                        <th>Toplam Tutar</th>
                         <th>İşlem</th>
                       </tr>
                     </thead>
@@ -641,7 +694,6 @@ function App() {
                           <td>{formatDate(record.sozlesmeTarihi)}</td>
                           <td>{record.aracKiralayan}</td>
                           <td>{record.yetkiliAdSoyad}</td>
-                          <td>{record.unvan}</td>
                           <td>{formatDate(record.kiralamaTarihi)}</td>
                           <td>{formatDate(record.donusTarihi)}</td>
                           <td>{record.kiraSuresiGun}</td>
@@ -657,29 +709,40 @@ function App() {
                   <h4>+ Yeni Sözleşme Girişi</h4>
                   <div className="form-grid compact two-columns">
                     <label><span>Sözleşme Tarihi <span className="required">*</span></span><input type="date" max={getTodayString()} value={contractForm.sozlesmeTarihi} onChange={(event) => setContractForm({ ...contractForm, sozlesmeTarihi: event.target.value })} /></label>
-                    <label><span>Yetkili Ad Soyad <span className="required">*</span></span><input value={contractForm.yetkiliAdSoyad} onChange={(event) => setContractForm({ ...contractForm, yetkiliAdSoyad: event.target.value })} /></label>
-                    <label><span>Araç Kiralayan <span className="required">*</span></span><input value={contractForm.aracKiralayan} onChange={(event) => setContractForm({ ...contractForm, aracKiralayan: event.target.value })} /></label>
-                    <label><span>Unvan</span><input value={contractForm.unvan} onChange={(event) => setContractForm({ ...contractForm, unvan: event.target.value })} /></label>
-                    <label><span>Vergi Dairesi</span><input value={contractForm.vergiDairesi} onChange={(event) => setContractForm({ ...contractForm, vergiDairesi: event.target.value })} /></label>
+                    <label><span>Yetkili Ad Soyad <span className="required">*</span></span><input placeholder='Ör: Selami Yıldırım' value={contractForm.yetkiliAdSoyad} onChange={(event) => setContractForm({ ...contractForm, yetkiliAdSoyad: event.target.value })} /></label>
+                    <label><span>Araç Kiralayan <span className="required">*</span></span><input placeholder='Ör: Selami Yıldırım' value={contractForm.aracKiralayan} onChange={(event) => setContractForm({ ...contractForm, aracKiralayan: event.target.value })} /></label>
+                    <label><span>Unvan</span><input placeholder='Ör: Nikelaj Oto Sanayi A.Ş.' value={contractForm.unvan} onChange={(event) => setContractForm({ ...contractForm, unvan: event.target.value })} /></label>
+                    <label><span>Vergi Dairesi</span><input placeholder='Yalova Vergi Dairesi' value={contractForm.vergiDairesi} onChange={(event) => setContractForm({ ...contractForm, vergiDairesi: event.target.value })} /></label>
                     <label><span>TCKN</span><input value={contractForm.tckn} onChange={(event) => setContractForm({ ...contractForm, tckn: event.target.value })} /></label>
                     <label><span>Vergi No</span><input value={contractForm.vergiNo} onChange={(event) => setContractForm({ ...contractForm, vergiNo: event.target.value })} /></label>
-                    <label><span>Telefon</span><input value={contractForm.telefon} onChange={(event) => setContractForm({ ...contractForm, telefon: event.target.value })} /></label>
+                    <label><span>Telefon</span><input placeholder='5051111111' value={contractForm.telefon} onChange={(event) => setContractForm({ ...contractForm, telefon: event.target.value })} /></label>
                     <label><span>Adres</span><textarea value={contractForm.adres} onChange={(event) => setContractForm({ ...contractForm, adres: event.target.value })} /></label>
                     <label><span>Kullanıcı</span><input value={contractForm.kullanici} onChange={(event) => setContractForm({ ...contractForm, kullanici: event.target.value })} /></label>
                     <label><span>Kiralama Tarihi <span className="required">*</span></span><input type="date" value={contractForm.kiralamaTarihi} onChange={(event) => setContractForm({ ...contractForm, kiralamaTarihi: event.target.value })} /></label>
                     <label><span>Başlangıç KM</span><input type="number" value={contractForm.baslangicKm} onChange={(event) => setContractForm({ ...contractForm, baslangicKm: event.target.value })} /></label>
                     <label><span>Dönüş KM</span><input type="number" value={contractForm.donusKm} onChange={(event) => setContractForm({ ...contractForm, donusKm: event.target.value })} /></label>
                     <label><span>Kira Süresi (Gün) <span className="required">*</span></span><input type="number" value={contractForm.kiraSuresiGun} onChange={(event) => setContractForm({ ...contractForm, kiraSuresiGun: event.target.value })} /></label>
-                    <label><span>Kira Bedeli (Günlük/KDV Hariç) <span className="required">*</span></span><input type="number" value={contractForm.kiraBedeliGunlukKdvHaric} onChange={(event) => setContractForm({ ...contractForm, kiraBedeliGunlukKdvHaric: event.target.value })} /></label>
-                    <label><span>Lastik</span><input value={contractForm.lastik} onChange={(event) => setContractForm({ ...contractForm, lastik: event.target.value })} /></label>
+                    <label>
+                      <span>Kira Bedeli (Günlük/KDV Hariç) <span className="required">*</span></span>
+                      <CurrencyInput
+                        id="kiraBedeliGunlukKdvHaric"
+                        name="kiraBedeliGunlukKdvHaric"
+                        placeholder="Örn: 1200"
+                        value={contractForm.kiraBedeliGunlukKdvHaric}
+                        suffix=" ₺"
+                        decimalsLimit={2}
+                        onValueChange={(value) => setContractForm({ ...contractForm, kiraBedeliGunlukKdvHaric: value || '' })}
+                      />
+                    </label>
+                    <label><span>Lastik</span><input placeholder='Ör: 210x55x17' value={contractForm.lastik} onChange={(event) => setContractForm({ ...contractForm, lastik: event.target.value })} /></label>
                   </div>
                   <button type="submit" className="primary" disabled={savingContract}>{savingContract ? 'Kaydediliyor...' : 'Kaydet'}</button>
                 </form>
-              </>
+              </div>
             ) : null}
           </div>
-        ) : null}
-      </section>
+        </div>
+      )}
     </div>
   )
 }

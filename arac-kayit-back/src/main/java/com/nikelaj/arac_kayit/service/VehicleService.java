@@ -13,6 +13,10 @@ import com.nikelaj.arac_kayit.repo.ContractInfoRepo;
 import com.nikelaj.arac_kayit.repo.MaintenanceRecordRepo;
 import com.nikelaj.arac_kayit.repo.VehicleRepo;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -73,14 +77,16 @@ public class VehicleService {
 
     // VehicleService.java — eklenecek metod
     @Transactional(readOnly = true)
-    public List<VehicleResponse> searchVehicles(String plaka, Integer modelYili, VehicleStatus durum) {
+    public Page<VehicleResponse> searchVehicles(String plaka, Integer modelYili, VehicleStatus durum, int page, int size) {
         Specification<Vehicle> spec = Specification
                 .where(VehicleSpecifications.hasPlaka(plaka))
                 .and(VehicleSpecifications.hasModelYili(modelYili))
                 .and(VehicleSpecifications.hasDurum(durum));
-        return vehicleRepo.findAll(spec).stream()
-                .map(vehicleMapper::toResponse)
-                .toList();
+
+        // ID'ye göre azalan sıralama (En son eklenen en üstte)
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id"));
+
+        return vehicleRepo.findAll(spec, pageable).map(vehicleMapper::toResponse);
     }
 
 

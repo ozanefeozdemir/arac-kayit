@@ -12,6 +12,7 @@ public interface VehicleRepo extends JpaRepository<Vehicle, Long>, JpaSpecificat
 
     Optional<Vehicle> findFirstByPlakaAndDurum(String plaka, VehicleStatus durum);
     boolean existsByPlakaAndDurum(String plaka,  VehicleStatus durum);
+    boolean existsByPlaka(String plaka);
     List<Vehicle> findByDurum(VehicleStatus durum);
 
 }

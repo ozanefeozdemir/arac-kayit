@@ -6,6 +6,7 @@ import com.nikelaj.arac_kayit.entity.VehicleStatus;
 import com.nikelaj.arac_kayit.service.VehicleService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -47,10 +48,13 @@ public class VehicleController {
 
     // VehicleController.java — eklenecek endpoint
     @GetMapping
-    public ResponseEntity<List<VehicleResponse>> searchVehicles(
+    public ResponseEntity<Page<VehicleResponse>> getVehicles(
             @RequestParam(required = false) String plaka,
             @RequestParam(required = false) Integer modelYili,
-            @RequestParam(required = false) VehicleStatus durum) {
-        return ResponseEntity.ok(vehicleService.searchVehicles(plaka, modelYili, durum));
+            @RequestParam(required = false) VehicleStatus durum,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+
+        return ResponseEntity.ok(vehicleService.searchVehicles(plaka, modelYili, durum, page, size));
     }
 }
