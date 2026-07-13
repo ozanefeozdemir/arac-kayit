@@ -2,7 +2,7 @@ import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import Papa from 'papaparse'
 import { formatDate, formatCurrency } from './dateFormat'
-import type { VehicleResponse, VehicleRequest } from '../types/vehicle'
+import type { VehicleResponse } from '../types/vehicle'
 import type { MaintenanceRecordResponse } from '../types/maintenance'
 import type { ContractInfoResponse } from '../types/contract'
 

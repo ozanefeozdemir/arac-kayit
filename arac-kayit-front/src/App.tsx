@@ -7,7 +7,6 @@ import type { VehicleRequest, VehicleResponse } from './types/vehicle'
 import type { MaintenanceRecordResponse } from './types/maintenance'
 import type { ContractInfoResponse } from './types/contract'
 import { formatCurrency, formatDate, getTodayString, normalizePlaka } from './utils/dateFormat'
-import { buildVehicleCsv, parseVehicleCsv } from './types/vehicleCsv'
 import Bildirim from './components/Bildirim'
 import CurrencyInput from 'react-currency-input-field'
 import {
