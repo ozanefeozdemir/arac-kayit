@@ -7,7 +7,7 @@ export const getVehicles = async (params?: {
   durum?: string
 }) => {
   const response = await apiClient.get<VehicleResponse[]>('/api/vehicle', { params })
-  return response.data
+  return response.data.reverse()
 }
 
 export const getVehicleById = async (id: number) => {
