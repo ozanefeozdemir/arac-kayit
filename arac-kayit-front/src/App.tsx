@@ -10,6 +10,11 @@ import { formatCurrency, formatDate, getTodayString, normalizePlaka } from './ut
 import { buildVehicleCsv, parseVehicleCsv } from './types/vehicleCsv'
 import Bildirim from './components/Bildirim'
 import CurrencyInput from 'react-currency-input-field'
+import {
+  exportVehiclesToPdf, exportVehiclesToCsv,
+  exportMaintenanceToPdf, exportContractsToPdf,
+  downloadVehicleImportTemplate, parseVehicleBulkCsv
+} from './utils/exportUtils'
 
 const emptyVehicleForm: VehicleRequest = {
   plaka: '',
@@ -59,7 +64,6 @@ function App() {
   const [totalElements, setTotalElements] = useState(0)
   const pageSize = 10
 
-  // Form görünürlüğü yerine modal kontrol state'i eklendi
   const [isModalOpen, setIsModalOpen] = useState(false)
 
   const [maintenanceForm, setMaintenanceForm] = useState({ bakimTarihi: getTodayString(), yapilanIslemler: '', maliyet: '' })
@@ -141,6 +145,43 @@ function App() {
     }
   }
 
+  // --- YENİ EKLENEN: Tüm araçları tek seferde çekip export eden fonksiyonlar ---
+  const fetchAllFilteredVehicles = async () => {
+    const data = await getVehicles({
+      plaka: filters.plaka || undefined,
+      modelYili: filters.modelYili ? Number(filters.modelYili) : undefined,
+      durum: filters.durum || undefined,
+      page: 0,
+      size: 100000 // Tüm kayıtları getirmesi için yüksek bir değer
+    })
+    return data.content
+  }
+
+  const handleExportAllToCsv = async () => {
+    try {
+      setLoadingVehicles(true)
+      const allVehicles = await fetchAllFilteredVehicles()
+      exportVehiclesToCsv(allVehicles)
+    } catch (error) {
+      setBanner({ type: 'error', title: 'Dışa Aktarım Başarısız', message: 'Tüm veriler çekilemedi.' })
+    } finally {
+      setLoadingVehicles(false)
+    }
+  }
+
+  const handleExportAllToPdf = async () => {
+    try {
+      setLoadingVehicles(true)
+      const allVehicles = await fetchAllFilteredVehicles()
+      exportVehiclesToPdf(allVehicles)
+    } catch (error) {
+      setBanner({ type: 'error', title: 'Dışa Aktarım Başarısız', message: 'Tüm veriler çekilemedi.' })
+    } finally {
+      setLoadingVehicles(false)
+    }
+  }
+  // --------------------------------------------------------------------------
+
   const loadRelatedRecords = async (plaka: string) => {
     try {
       setLoadingMaintenance(true)
@@ -162,42 +203,7 @@ function App() {
     setIsEditing(false)
     setActiveTab('vehicle')
     setFormErrors({})
-    setIsModalOpen(true) // Modal olarak açılmasını sağlıyoruz
-  }
-
-  const handleCsvImport = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (!file) return
-
-    const reader = new FileReader()
-    reader.onload = () => {
-      const csvText = reader.result as string
-      const parsedVehicle = parseVehicleCsv(csvText)
-      setVehicleForm({
-        ...emptyVehicleForm,
-        ...parsedVehicle,
-        modelYili: parsedVehicle.modelYili ?? emptyVehicleForm.modelYili,
-        km: parsedVehicle.km ?? emptyVehicleForm.km,
-      })
-      setSelectedVehicle(null)
-      setIsEditing(false)
-      setFormErrors({})
-      setIsModalOpen(true)
-      setBanner({ type: 'success', title: 'CSV içeriği yüklendi. Formu inceleyip kaydedebilirsiniz.' })
-    }
-    reader.readAsText(file)
-    event.target.value = ''
-  }
-
-  const handleCsvExport = () => {
-    const csvContent = buildVehicleCsv(vehicleForm)
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-    const url = window.URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `arac-${vehicleForm.plaka || 'yeni'}.csv`
-    link.click()
-    window.URL.revokeObjectURL(url)
+    setIsModalOpen(true)
   }
 
   const validateVehicle = (payload: VehicleRequest) => {
@@ -216,8 +222,6 @@ function App() {
     setFormErrors(nextErrors)
     return Object.keys(nextErrors).length === 0
   }
-
-
 
   const handleVehicleSubmit = async (event: FormEvent) => {
     event.preventDefault()
@@ -268,7 +272,7 @@ function App() {
     try {
       await deleteVehicle(selectedVehicle.id)
       setBanner({ type: 'success', title: 'Araç kaydı silindi.' })
-      setIsModalOpen(false) // Silme sonrası modalı kapatıyoruz
+      setIsModalOpen(false)
       setSelectedVehicle(null)
       setVehicleForm(emptyVehicleForm)
       setIsEditing(false)
@@ -282,7 +286,7 @@ function App() {
 
   const onRowSelect = (vehicle: VehicleResponse) => {
     setSelectedVehicle(vehicle)
-    setIsModalOpen(true) // Seçim yapıldığında modal açılıyor
+    setIsModalOpen(true)
     setVehicleForm({
       plaka: vehicle.plaka,
       marka: vehicle.marka,
@@ -399,6 +403,59 @@ function App() {
     }
   }
 
+  const handleBulkImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    try {
+      setLoadingVehicles(true)
+      const data = await parseVehicleBulkCsv(file)
+      
+      let successCount = 0
+      let errorCount = 0
+
+      for (const row of data) {
+        try {
+          const payload: VehicleRequest = {
+            plaka: row['plaka']?.toUpperCase() || '',
+            marka: row['marka'] || '',
+            model: row['model'] || '',
+            modelYili: Number(row['modelYili']) || new Date().getFullYear(),
+            tipi: row['tipi'] || '',
+            km: Number(row['km']) || 0,
+            muayeneTarihi: row['muayeneTarihi(YYYY-MM-DD)'] || getTodayString(),
+            tescilTarihi: row['tescilTarihi(YYYY-MM-DD)'] || getTodayString(),
+            durum: (row['durum(AKTIF/PASIF/SATILDI)'] as VehicleRequest['durum']) || 'AKTIF',
+            lastikBilgisi: null,
+            ekspertiz: null,
+            tescilBelgeNo: null,
+            pasifNedeni: null,
+            satisTarihi: null
+          }
+
+          if (payload.plaka && payload.marka) {
+            await createVehicle(payload)
+            successCount++
+          }
+        } catch (err) {
+          errorCount++
+        }
+      }
+
+      setBanner({ 
+        type: successCount > 0 ? 'success' : 'error', 
+        title: 'Toplu İçe Aktarma Tamamlandı', 
+        message: `${successCount} araç eklendi, ${errorCount} araçta hata oluştu.` 
+      })
+      await loadVehicles(0)
+    } catch (error) {
+      setBanner({ type: 'error', title: 'CSV Okuma Hatası', message: 'Dosya formatı geçersiz.' })
+    } finally {
+      setLoadingVehicles(false)
+      event.target.value = ''
+    }
+  }
+
   const summaryText = useMemo(() => `${totalElements} araç bulundu`, [totalElements])
   return (
     <div className="app-shell">
@@ -446,6 +503,15 @@ function App() {
           <div className="panel-actions">
             <span className="muted">{summaryText}</span>
             <button type="button" className="primary" onClick={clearVehicleForm}>+ Yeni Araç Girişi</button>
+            {/* --- GÜNCELLENDİ: Sadece mevcut sayfadaki araçları değil, tüm DB'yi çeken fonksiyonlar bağlandı --- */}
+            <button type="button" className="secondary small" onClick={handleExportAllToCsv}>CSV İndir</button>
+            <button type="button" className="secondary small" onClick={handleExportAllToPdf}>PDF İndir</button>
+            {/* ------------------------------------------------------------------------------------------------- */}
+            <button type="button" className="secondary small" onClick={downloadVehicleImportTemplate}>Şablon İndir</button>
+            <label className="secondary small button-like" style={{ cursor: 'pointer', display: 'inline-block', padding: '0.4rem 0.8rem', border: '1px solid #ccc', borderRadius: '4px' }}>
+              Toplu Yükle (CSV)
+              <input type="file" accept=".csv" style={{ display: 'none' }} onChange={handleBulkImport} />
+            </label>
           </div>
         </div>
         {loadingVehicles ? <p>Yükleniyor...</p> : vehicles.length === 0 ? <p className="empty">Kayıt bulunamadı</p> : (
@@ -514,7 +580,6 @@ function App() {
         )}
       </section>
 
-      {/* MODAL YAPISI EKLENDİ */}
       {isModalOpen && (
         <div className="modal-overlay" onClick={() => setIsModalOpen(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -525,13 +590,7 @@ function App() {
                 <h2>{isEditing && selectedVehicle ? `${selectedVehicle.plaka} - Araç Detayı` : 'Yeni Araç Kayıt Formu'}</h2>
                 <p className="muted">Araç, bakım ve sözleşme bilgilerini yönetin.</p>
               </div>
-              <div className="panel-actions">
-                <label className="file-upload">
-                  <span>CSV İçeri Aktar</span>
-                  <input disabled type="file" accept=".csv,text/csv" onChange={handleCsvImport} />
-                </label>
-                <button disabled type="button" className="secondary" onClick={handleCsvExport}>CSV Dışa Aktar</button>
-              </div>
+
             </div>
 
             <div className="tabs">
@@ -620,6 +679,15 @@ function App() {
 
             {activeTab === 'maintenance' && selectedVehicle ? (
               <div className="tab-content">
+                {/* --- GÜNCELLENDİ: Bakım paneline header ve PDF butonu eklendi --- */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                  <h3 style={{ margin: 0 }}>Bakım Geçmişi</h3>
+                  {maintenanceRecords.length > 0 && (
+                    <button type="button" className="secondary small" onClick={() => exportMaintenanceToPdf(maintenanceRecords, selectedVehicle.plaka)}>PDF İndir</button>
+                  )}
+                </div>
+                {/* --------------------------------------------------------------- */}
+
                 {loadingMaintenance ? <p>Yükleniyor...</p> : maintenanceRecords.length === 0 ? <p className="empty">Bakım kaydı bulunamadı.</p> : (
                   <table>
                     <thead>
@@ -673,6 +741,15 @@ function App() {
 
             {activeTab === 'contract' && selectedVehicle ? (
               <div className="tab-content">
+                {/* --- GÜNCELLENDİ: Sözleşme paneline header ve PDF butonu eklendi --- */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                  <h3 style={{ margin: 0 }}>Sözleşme Geçmişi</h3>
+                  {contractRecords.length > 0 && (
+                    <button type="button" className="secondary small" onClick={() => exportContractsToPdf(contractRecords, selectedVehicle.plaka)}>PDF İndir</button>
+                  )}
+                </div>
+                {/* ----------------------------------------------------------------- */}
+
                 {loadingContracts ? <p>Yükleniyor...</p> : contractRecords.length === 0 ? <p className="empty">Sözleşme kaydı bulunamadı.</p> : (
                   <table>
                     <thead>
