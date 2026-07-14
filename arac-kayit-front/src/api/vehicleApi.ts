@@ -38,3 +38,13 @@ export const updateVehicle = async (id: number, payload: VehicleRequest) => {
 export const deleteVehicle = async (id: number) => {
   await apiClient.delete(`/api/vehicle/${id}`)
 }
+
+export const getMarkalar = async () => {
+  const response = await apiClient.get<string[]>('/api/vehicle/markalar')
+  return response.data
+}
+
+export const getModeller = async (marka: string) => {
+  const response = await apiClient.get<string[]>('/api/vehicle/modeller', { params: { marka } })
+  return response.data
+}

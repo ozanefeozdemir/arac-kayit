@@ -57,4 +57,14 @@ public class VehicleController {
 
         return ResponseEntity.ok(vehicleService.searchVehicles(plaka, modelYili, durum, page, size));
     }
+
+    @GetMapping("/markalar")
+    public ResponseEntity<List<String>> getMarkalar() {
+        return ResponseEntity.ok(vehicleService.getMarkalar());
+    }
+
+    @GetMapping("/modeller")
+    public ResponseEntity<List<String>> getModeller(@RequestParam String marka) {
+        return ResponseEntity.ok(vehicleService.getModeller(marka));
+    }
 }

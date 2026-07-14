@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import './App.css'
-import { createVehicle, deleteVehicle, getVehicles, updateVehicle } from './api/vehicleApi'
+import { createVehicle, deleteVehicle, getMarkalar, getModeller, getVehicles, updateVehicle } from './api/vehicleApi'
 import { createMaintenanceRecord, deleteMaintenanceRecord, getMaintenanceRecords } from './api/maintenanceApi'
 import { createContractRecord, deleteContractRecord, getContractRecords } from './api/contractApi'
 import type { VehicleRequest, VehicleResponse } from './types/vehicle'
@@ -62,6 +62,8 @@ function App() {
   const [totalPages, setTotalPages] = useState(0)
   const [totalElements, setTotalElements] = useState(0)
   const pageSize = 10
+  const [markalar, setMarkalar] = useState<string[]>([])
+  const [modeller, setModeller] = useState<string[]>([])
 
   const [isModalOpen, setIsModalOpen] = useState(false)
 
@@ -118,6 +120,24 @@ function App() {
       window.removeEventListener('keydown', handleKeyDown)
     }
   }, [isModalOpen])
+  // Marka listesi sayfa açılınca bir kere çekilir
+  useEffect(() => {
+    getMarkalar().then(setMarkalar).catch(() => setMarkalar([]))
+  }, [])
+
+  // Kullanıcı marka yazdıkça (veya bir satır seçilince) o markaya ait
+  // modelleri getirir. 300ms debounce ile her tuşta API'ye gitmez.
+  useEffect(() => {
+    const marka = vehicleForm.marka.trim()
+    if (!marka) {
+      setModeller([])
+      return
+    }
+    const timer = window.setTimeout(() => {
+      getModeller(marka).then(setModeller).catch(() => setModeller([]))
+    }, 300)
+    return () => window.clearTimeout(timer)
+  }, [vehicleForm.marka])
 
   const loadVehicles = async (currentPage = 0) => {
     setLoadingVehicles(true)
@@ -402,6 +422,30 @@ function App() {
     }
   }
 
+  // 1. Standart inputlar için merkezi handler
+  const handleInputChange = (e: any) => {
+    const { name, value } = e.target;
+    setContractForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  // 2. Özel validasyon gerektirenler için spesifik handler'lar
+  const handleTcknChange = (e: any) => {
+    const val = e.target.value;
+    if (/^\d{0,11}$/.test(val)) setContractForm((prev) => ({ ...prev, tckn: val }));
+  };
+
+  const handleVergiNoChange = (e: any) => {
+    const val = e.target.value;
+    if (/^\d{0,10}$/.test(val)) setContractForm((prev) => ({ ...prev, vergiNo: val }));
+  };
+
+  const handlePhoneChange = (e: any) => {
+    let val = e.target.value.replace(/\D/g, '');
+    if (val.startsWith('0')) val = val.substring(1);
+    val = val.substring(0, 10);
+    setContractForm((prev) => ({ ...prev, telefon: val }));
+  };
+
   const handleBulkImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file) return
@@ -409,7 +453,7 @@ function App() {
     try {
       setLoadingVehicles(true)
       const data = await parseVehicleBulkCsv(file)
-      
+
       let successCount = 0
       let errorCount = 0
 
@@ -441,10 +485,10 @@ function App() {
         }
       }
 
-      setBanner({ 
-        type: successCount > 0 ? 'success' : 'error', 
-        title: 'Toplu İçe Aktarma Tamamlandı', 
-        message: `${successCount} araç eklendi, ${errorCount} araçta hata oluştu.` 
+      setBanner({
+        type: successCount > 0 ? 'success' : 'error',
+        title: 'Toplu İçe Aktarma Tamamlandı',
+        message: `${successCount} araç eklendi, ${errorCount} araçta hata oluştu.`
       })
       await loadVehicles(0)
     } catch (error) {
@@ -454,6 +498,17 @@ function App() {
       event.target.value = ''
     }
   }
+  const formatPhoneNumber = (value: any) => {
+    if (!value) return value;
+    let cleaned = value.replace(/\D/g, '');
+    if (cleaned.startsWith('0')) cleaned = cleaned.substring(1);
+
+    const len = cleaned.length;
+    if (len < 4) return cleaned;
+    if (len < 7) return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3)}`;
+    if (len < 9) return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3, 6)} ${cleaned.slice(6)}`;
+    return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3, 6)} ${cleaned.slice(6, 8)} ${cleaned.slice(8, 10)}`;
+  };
 
   const summaryText = useMemo(() => `${totalElements} araç bulundu`, [totalElements])
   return (
@@ -608,12 +663,32 @@ function App() {
                   </label>
                   <label>
                     <span>Marka <span className="required">*</span></span>
-                    <input value={vehicleForm.marka} onChange={(event) => setVehicleForm({ ...vehicleForm, marka: event.target.value })} maxLength={50} placeholder="Örn: Renault" />
+                    <input
+                      list="marka-onerileri"
+                      autoComplete="off"
+                      value={vehicleForm.marka}
+                      onChange={(event) => setVehicleForm({ ...vehicleForm, marka: event.target.value })}
+                      maxLength={50}
+                      placeholder="Örn: Renault"
+                    />
+                    <datalist id="marka-onerileri">
+                      {markalar.map((m) => <option key={m} value={m} />)}
+                    </datalist>
                     {formErrors.marka ? <small className="error-text">{formErrors.marka}</small> : null}
                   </label>
                   <label>
                     <span>Model <span className="required">*</span></span>
-                    <input value={vehicleForm.model} onChange={(event) => setVehicleForm({ ...vehicleForm, model: event.target.value })} maxLength={50} placeholder="Örn: Megane" />
+                    <input
+                      list="model-onerileri"
+                      autoComplete="off"
+                      value={vehicleForm.model}
+                      onChange={(event) => setVehicleForm({ ...vehicleForm, model: event.target.value })}
+                      maxLength={50}
+                      placeholder="Örn: Megane"
+                    />
+                    <datalist id="model-onerileri">
+                      {modeller.map((m) => <option key={m} value={m} />)}
+                    </datalist>
                     {formErrors.model ? <small className="error-text">{formErrors.model}</small> : null}
                   </label>
                   <label>
@@ -784,20 +859,64 @@ function App() {
                 <form onSubmit={handleContractSubmit} className="nested-form">
                   <h4>+ Yeni Sözleşme Girişi</h4>
                   <div className="form-grid compact two-columns">
-                    <label><span>Sözleşme Tarihi <span className="required">*</span></span><input type="date" max={getTodayString()} value={contractForm.sozlesmeTarihi} onChange={(event) => setContractForm({ ...contractForm, sozlesmeTarihi: event.target.value })} /></label>
-                    <label><span>Yetkili Ad Soyad <span className="required">*</span></span><input placeholder='Ör: Selami Yıldırım' value={contractForm.yetkiliAdSoyad} onChange={(event) => setContractForm({ ...contractForm, yetkiliAdSoyad: event.target.value })} /></label>
-                    <label><span>Araç Kiralayan <span className="required">*</span></span><input placeholder='Ör: Selami Yıldırım' value={contractForm.aracKiralayan} onChange={(event) => setContractForm({ ...contractForm, aracKiralayan: event.target.value })} /></label>
-                    <label><span>Unvan</span><input placeholder='Ör: Nikelaj Oto Sanayi A.Ş.' value={contractForm.unvan} onChange={(event) => setContractForm({ ...contractForm, unvan: event.target.value })} /></label>
-                    <label><span>Vergi Dairesi</span><input placeholder='Yalova Vergi Dairesi' value={contractForm.vergiDairesi} onChange={(event) => setContractForm({ ...contractForm, vergiDairesi: event.target.value })} /></label>
-                    <label><span>TCKN</span><input value={contractForm.tckn} onChange={(event) => setContractForm({ ...contractForm, tckn: event.target.value })} /></label>
-                    <label><span>Vergi No</span><input value={contractForm.vergiNo} onChange={(event) => setContractForm({ ...contractForm, vergiNo: event.target.value })} /></label>
-                    <label><span>Telefon</span><input placeholder='5051111111' value={contractForm.telefon} onChange={(event) => setContractForm({ ...contractForm, telefon: event.target.value })} /></label>
-                    <label><span>Adres</span><textarea value={contractForm.adres} onChange={(event) => setContractForm({ ...contractForm, adres: event.target.value })} /></label>
-                    <label><span>Kullanıcı</span><input value={contractForm.kullanici} onChange={(event) => setContractForm({ ...contractForm, kullanici: event.target.value })} /></label>
-                    <label><span>Kiralama Tarihi <span className="required">*</span></span><input type="date" value={contractForm.kiralamaTarihi} onChange={(event) => setContractForm({ ...contractForm, kiralamaTarihi: event.target.value })} /></label>
-                    <label><span>Başlangıç KM</span><input type="number" value={contractForm.baslangicKm} onChange={(event) => setContractForm({ ...contractForm, baslangicKm: event.target.value })} /></label>
-                    <label><span>Dönüş KM</span><input type="number" value={contractForm.donusKm} onChange={(event) => setContractForm({ ...contractForm, donusKm: event.target.value })} /></label>
-                    <label><span>Kira Süresi (Gün) <span className="required">*</span></span><input type="number" value={contractForm.kiraSuresiGun} onChange={(event) => setContractForm({ ...contractForm, kiraSuresiGun: event.target.value })} /></label>
+
+                    {/* --- SÖZLEŞME & KİŞİ BİLGİLERİ --- */}
+                    <label>
+                      <span>Sözleşme Tarihi <span className="required">*</span></span>
+                      <input type="date" name="sozlesmeTarihi" max={getTodayString()} value={contractForm.sozlesmeTarihi} onChange={handleInputChange} />
+                    </label>
+                    <label>
+                      <span>Yetkili Ad Soyad <span className="required">*</span></span>
+                      <input type="text" name="yetkiliAdSoyad" placeholder="Ör: Selami Yıldırım" value={contractForm.yetkiliAdSoyad} onChange={handleInputChange} />
+                    </label>
+
+                    <label>
+                      <span>Araç Kiralayan <span className="required">*</span></span>
+                      <input type="text" name="aracKiralayan" placeholder="Ör: Selami Yıldırım" value={contractForm.aracKiralayan} onChange={handleInputChange} />
+                    </label>
+                    <label>
+                      <span>Unvan</span>
+                      <input type="text" name="unvan" placeholder="Ör: Nikelaj Oto Sanayi A.Ş." value={contractForm.unvan} onChange={handleInputChange} />
+                    </label>
+
+                    <label>
+                      <span>Vergi Dairesi</span>
+                      <input type="text" name="vergiDairesi" placeholder="Yalova Vergi Dairesi" value={contractForm.vergiDairesi} onChange={handleInputChange} />
+                    </label>
+                    <label>
+                      <span>Vergi No</span>
+                      <input type="text" name="vergiNo" value={contractForm.vergiNo} onChange={handleVergiNoChange} />
+                    </label>
+
+                    <label>
+                      <span>TCKN</span>
+                      <input type="text" name="tckn" value={contractForm.tckn} onChange={handleTcknChange} />
+                    </label>
+                    <label>
+                      <span>Telefon</span>
+                      <input type="tel" name="telefon" placeholder="(5XX) XXX XX XX" value={formatPhoneNumber(contractForm.telefon)} onChange={handlePhoneChange} />
+                    </label>
+
+                    {/* Adres genellikle daha fazla alan kaplar, grid yapında span-2 gibi bir class verebilirsin */}
+                    <label className="full-width">
+                      <span>Adres</span>
+                      <textarea name="adres" value={contractForm.adres} onChange={handleInputChange} />
+                    </label>
+
+                    {/* --- KİRALAMA & ARAÇ DETAYLARI --- */}
+                    <label>
+                      <span>Kullanıcı</span>
+                      <input type="text" name="kullanici" value={contractForm.kullanici} onChange={handleInputChange} />
+                    </label>
+                    <label>
+                      <span>Kiralama Tarihi <span className="required">*</span></span>
+                      <input type="date" name="kiralamaTarihi" value={contractForm.kiralamaTarihi} onChange={handleInputChange} />
+                    </label>
+
+                    <label>
+                      <span>Kira Süresi (Gün) <span className="required">*</span></span>
+                      <input type="number" name="kiraSuresiGun" min="0" value={contractForm.kiraSuresiGun} onChange={handleInputChange} />
+                    </label>
                     <label>
                       <span>Kira Bedeli (Günlük/KDV Hariç) <span className="required">*</span></span>
                       <CurrencyInput
@@ -807,10 +926,23 @@ function App() {
                         value={contractForm.kiraBedeliGunlukKdvHaric}
                         suffix=" ₺"
                         decimalsLimit={2}
-                        onValueChange={(value) => setContractForm({ ...contractForm, kiraBedeliGunlukKdvHaric: value || '' })}
+                        onValueChange={(value) => setContractForm((prev) => ({ ...prev, kiraBedeliGunlukKdvHaric: value || '' }))}
                       />
                     </label>
-                    <label><span>Lastik</span><input placeholder='Ör: 210x55x17' value={contractForm.lastik} onChange={(event) => setContractForm({ ...contractForm, lastik: event.target.value })} /></label>
+
+                    <label>
+                      <span>Başlangıç KM</span>
+                      <input type="number" name="baslangicKm" min="0" value={contractForm.baslangicKm} onChange={handleInputChange} />
+                    </label>
+                    <label>
+                      <span>Dönüş KM</span>
+                      <input type="number" name="donusKm" min="0" value={contractForm.donusKm} onChange={handleInputChange} />
+                    </label>
+
+                    <label>
+                      <span>Lastik</span>
+                      <input type="text" name="lastik" placeholder="Ör: 210x55x17" value={contractForm.lastik} onChange={handleInputChange} />
+                    </label>
                   </div>
                   <button type="submit" className="primary" disabled={savingContract}>{savingContract ? 'Kaydediliyor...' : 'Kaydet'}</button>
                 </form>

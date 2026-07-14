@@ -89,5 +89,17 @@ public class VehicleService {
         return vehicleRepo.findAll(spec, pageable).map(vehicleMapper::toResponse);
     }
 
+    @Transactional(readOnly = true)
+    public List<String> getMarkalar() {
+        return vehicleRepo.findDistinctMarkalar();
+    }
+
+    @Transactional(readOnly = true)
+    public List<String> getModeller(String marka) {
+        if (marka == null || marka.isBlank()) {
+            return List.of();
+        }
+        return vehicleRepo.findDistinctModellerByMarka(marka.trim());
+    }
 
 }
