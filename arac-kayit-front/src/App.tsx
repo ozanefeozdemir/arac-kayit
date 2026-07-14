@@ -509,7 +509,7 @@ function App() {
     if (len < 9) return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3, 6)} ${cleaned.slice(6)}`;
     return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3, 6)} ${cleaned.slice(6, 8)} ${cleaned.slice(8, 10)}`;
   };
-  const handleVehicleChange = (e:any) => {
+  const handleVehicleChange = (e: any) => {
     const { name, value, type } = e.target;
 
     setVehicleForm((prev) => {
@@ -530,7 +530,7 @@ function App() {
   };
 
   // --- BAKIM FORMU İÇİN MERKEZİ HANDLER ---
-  const handleMaintenanceChange = (e:any) => {
+  const handleMaintenanceChange = (e: any) => {
     const { name, value } = e.target;
     setMaintenanceForm((prev) => ({ ...prev, [name]: value }));
   };
@@ -686,7 +686,7 @@ function App() {
                     <input name="plaka" value={vehicleForm.plaka} onChange={handleVehicleChange} maxLength={20} placeholder="Örn: 34ABC123" />
                     {formErrors.plaka ? <small className="error-text">{formErrors.plaka}</small> : null}
                   </label>
-                  
+
                   <label>
                     <span>Marka <span className="required">*</span></span>
                     <input
@@ -703,7 +703,7 @@ function App() {
                     </datalist>
                     {formErrors.marka ? <small className="error-text">{formErrors.marka}</small> : null}
                   </label>
-                  
+
                   <label>
                     <span>Model <span className="required">*</span></span>
                     <input
@@ -720,47 +720,47 @@ function App() {
                     </datalist>
                     {formErrors.model ? <small className="error-text">{formErrors.model}</small> : null}
                   </label>
-                  
+
                   <label>
                     <span>Model Yılı <span className="required">*</span></span>
                     <input type="number" name="modelYili" value={vehicleForm.modelYili ?? ''} onChange={handleVehicleChange} min="1900" max={new Date().getFullYear()} placeholder="Örn: 2023" />
                     {formErrors.modelYili ? <small className="error-text">{formErrors.modelYili}</small> : null}
                   </label>
-                  
+
                   <label>
                     <span>Tipi <span className="required">*</span></span>
                     <input name="tipi" value={vehicleForm.tipi} onChange={handleVehicleChange} maxLength={100} placeholder="Örn: 1.3 TCe Icon" />
                     {formErrors.tipi ? <small className="error-text">{formErrors.tipi}</small> : null}
                   </label>
-                  
+
                   <label>
                     <span>KM</span>
                     <input type="number" name="km" value={vehicleForm.km ?? ''} onChange={handleVehicleChange} min="0" max="999999" placeholder="Örn: 125000" />
                     {formErrors.km ? <small className="error-text">{formErrors.km}</small> : null}
                   </label>
-                  
+
                   <label>
                     <span>Muayene Tarihi <span className="required">*</span></span>
                     <input type="date" name="muayeneTarihi" value={vehicleForm.muayeneTarihi} onChange={handleVehicleChange} />
                     {formErrors.muayeneTarihi ? <small className="error-text">{formErrors.muayeneTarihi}</small> : null}
                   </label>
-                  
-                 <label>
+
+                  <label>
                     <span>Satış Tarihi</span>
                     <input type="date" name="satisTarihi" max={getTodayString()} value={vehicleForm.satisTarihi ?? ''} onChange={handleVehicleChange} />
                   </label>
-                  
+
                   <label>
                     <span>Lastik</span>
                     <input name="lastikBilgisi" value={vehicleForm.lastikBilgisi ?? ''} onChange={handleVehicleChange} placeholder="Örn: 205x55x16" />
                   </label>
-                  
+
                   <label>
                     <span>Tescil Tarihi <span className="required">*</span></span>
                     <input type="date" name="tescilTarihi" max={getTodayString()} value={vehicleForm.tescilTarihi} onChange={handleVehicleChange} />
                     {formErrors.tescilTarihi ? <small className="error-text">{formErrors.tescilTarihi}</small> : null}
                   </label>
-                  
+
                   <label>
                     <span>Durumu <span className="required">*</span></span>
                     <select name="durum" value={vehicleForm.durum} onChange={handleVehicleChange}>
@@ -768,22 +768,22 @@ function App() {
                     </select>
                     {formErrors.durum ? <small className="error-text">{formErrors.durum}</small> : null}
                   </label>
-                  
+
                   <label>
                     <span>Tescil Belge No</span>
                     <input name="tescilBelgeNo" value={vehicleForm.tescilBelgeNo ?? ''} onChange={handleVehicleChange} maxLength={50} placeholder="Örn: AB123456" />
                   </label>
-                  
+
                   <label className="full-width">
                     <span>Pasif Nedeni</span>
                     <textarea name="pasifNedeni" value={vehicleForm.pasifNedeni ?? ''} onChange={handleVehicleChange} placeholder="Eğer araç pasife çekildiyse nedenini belirtin (Örn: Kazalı, perte ayrıldı, motor arızası vb.)" />
                   </label>
-                  
-                   <label className="full-width">
+
+                  <label className="full-width">
                     <span>Ekspertiz</span>
                     <textarea name="ekspertiz" value={vehicleForm.ekspertiz ?? ''} onChange={handleVehicleChange} placeholder="Değişen/boyalı parçalar, tramer kaydı, güncel hasar durumu vb." />
                   </label>
-                  
+
                 </div>
                 <div className="actions-row">
                   <button type="submit" className="primary" disabled={savingVehicle}>{savingVehicle ? 'Kaydediliyor...' : isEditing ? 'Güncelle' : 'Kaydet'}</button>
@@ -794,6 +794,30 @@ function App() {
 
             {activeTab === 'maintenance' && selectedVehicle ? (
               <div className="tab-content">
+                <form onSubmit={handleMaintenanceSubmit} className="nested-form">
+                  <h4>+ Yeni Bakım Girişi</h4>
+                  <div className="form-grid compact">
+                    <label>
+                      <span>Bakım Tarihi <span className="required">*</span></span>
+                      <input type="date" name="bakimTarihi" max={getTodayString()} value={maintenanceForm.bakimTarihi} onChange={handleMaintenanceChange} />
+                    </label>
+
+                    <label>
+                      <span>Ücret</span>
+                      {/* CurrencyInput standart e.target yapısını kullanmadığı için kendine özel onValueChange ile yönetilmeye devam ediyor */}
+                      <CurrencyInput
+                        id="maliyet"
+                        name="maliyet"
+                        placeholder="Örn: 1500"
+                        value={maintenanceForm.maliyet}
+                        suffix=" ₺"
+                        decimalsLimit={2}
+                        onValueChange={(value) => setMaintenanceForm((prev) => ({ ...prev, maliyet: value || '' }))}
+                      />
+                    </label>
+                  </div>
+                  <button type="submit" className="primary" disabled={savingMaintenance}>{savingMaintenance ? 'Kaydediliyor...' : 'Kaydet'}</button>
+                </form>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                   <h3 style={{ margin: 0 }}>Bakım Geçmişi</h3>
                   {maintenanceRecords.length > 0 && (
@@ -802,7 +826,7 @@ function App() {
                 </div>
 
                 {loadingMaintenance ? <p>Yükleniyor...</p> : maintenanceRecords.length === 0 ? <p className="empty">Bakım kaydı bulunamadı.</p> : (
-                  <table >
+                  <table>
                     <thead>
                       <tr>
                         <th>Bakım Tarihi</th>
@@ -823,81 +847,13 @@ function App() {
                     </tbody>
                   </table>
                 )}
-                
-                <form onSubmit={handleMaintenanceSubmit} className="nested-form">
-                  <h4>+ Yeni Bakım Girişi</h4>
-                  <div className="form-grid compact">
-                    <label>
-                      <span>Bakım Tarihi <span className="required">*</span></span>
-                      <input type="date" name="bakimTarihi" max={getTodayString()} value={maintenanceForm.bakimTarihi} onChange={handleMaintenanceChange} />
-                    </label>
-                    
-                    <label>
-                      <span>Ücret</span>
-                      {/* CurrencyInput standart e.target yapısını kullanmadığı için kendine özel onValueChange ile yönetilmeye devam ediyor */}
-                      <CurrencyInput
-                        id="maliyet"
-                        name="maliyet"
-                        placeholder="Örn: 1500"
-                        value={maintenanceForm.maliyet}
-                        suffix=" ₺"
-                        decimalsLimit={2}
-                        onValueChange={(value) => setMaintenanceForm((prev) => ({ ...prev, maliyet: value || '' }))}
-                      />
-                    </label>
-                    <label>
-                      <span>Yapılan İşlemler <span className="required">*</span></span>
-                      <textarea name="yapilanIslemler" placeholder='Ör: Yağ değişimi' value={maintenanceForm.yapilanIslemler} onChange={handleMaintenanceChange} />
-                    </label>
-                  </div>
-                  <button type="submit" className="primary" disabled={savingMaintenance}>{savingMaintenance ? 'Kaydediliyor...' : 'Kaydet'}</button>
-                </form>
+
+
               </div>
             ) : null}
 
             {activeTab === 'contract' && selectedVehicle ? (
               <div className="tab-content">
-                {/* --- GÜNCELLENDİ: Sözleşme paneline header ve PDF butonu eklendi --- */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                  <h3 style={{ margin: 0 }}>Sözleşme Geçmişi</h3>
-                  {contractRecords.length > 0 && (
-                    <button type="button" className="secondary small" onClick={() => exportContractsToPdf(contractRecords, selectedVehicle.plaka)}>PDF İndir</button>
-                  )}
-                </div>
-                {/* ----------------------------------------------------------------- */}
-
-                {loadingContracts ? <p>Yükleniyor...</p> : contractRecords.length === 0 ? <p className="empty">Sözleşme kaydı bulunamadı.</p> : (
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Sözleşme Tarihi</th>
-                        <th>Araç Kiralayan</th>
-                        <th>Yetkili Adı Soyadı</th>
-                        <th>Kiralama Tarihi</th>
-                        <th>Dönüş Tarihi</th>
-                        <th>Kira Süresi (Gün)</th>
-                        <th>Günlük Bedel</th>
-                        <th>Toplam Tutar</th>
-                        <th>İşlem</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {contractRecords.map((record) => (
-                        <tr key={record.id}>
-                          <td>{formatDate(record.sozlesmeTarihi)}</td>
-                          <td>{record.aracKiralayan}</td>
-                          <td>{record.yetkiliAdSoyad}</td>
-                          <td>{formatDate(record.kiralamaTarihi)}</td>
-                          <td>{formatDate(record.donusTarihi)}</td>
-                          <td>{record.kiraSuresiGun}</td>
-                          <td>{formatCurrency(record.kiraBedeliGunlukKdvHaric)}</td>
-                          <td>{formatCurrency(record.odenecekToplamTutar)}</td>
-                          <td><button type="button" className="danger small" onClick={() => void handleContractDelete(record.id)}>Sil</button></td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
                 <form onSubmit={handleContractSubmit} className="nested-form">
                   <h4>+ Yeni Sözleşme Girişi</h4>
                   <div className="form-grid compact two-columns">
@@ -988,6 +944,48 @@ function App() {
                   </div>
                   <button type="submit" className="primary" disabled={savingContract}>{savingContract ? 'Kaydediliyor...' : 'Kaydet'}</button>
                 </form>
+                {/* --- GÜNCELLENDİ: Sözleşme paneline header ve PDF butonu eklendi --- */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                  <h3 style={{ margin: 0 }}>Sözleşme Geçmişi</h3>
+                  {contractRecords.length > 0 && (
+                    <button type="button" className="secondary small" onClick={() => exportContractsToPdf(contractRecords, selectedVehicle.plaka)}>PDF İndir</button>
+                  )}
+                </div>
+                {/* ----------------------------------------------------------------- */}
+
+                {loadingContracts ? <p>Yükleniyor...</p> : contractRecords.length === 0 ? <p className="empty">Sözleşme kaydı bulunamadı.</p> : (
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Sözleşme Tarihi</th>
+                        <th>Araç Kiralayan</th>
+                        <th>Yetkili Adı Soyadı</th>
+                        <th>Kiralama Tarihi</th>
+                        <th>Dönüş Tarihi</th>
+                        <th>Kira Süresi (Gün)</th>
+                        <th>Günlük Bedel</th>
+                        <th>Toplam Tutar</th>
+                        <th>İşlem</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {contractRecords.map((record) => (
+                        <tr key={record.id}>
+                          <td>{formatDate(record.sozlesmeTarihi)}</td>
+                          <td>{record.aracKiralayan}</td>
+                          <td>{record.yetkiliAdSoyad}</td>
+                          <td>{formatDate(record.kiralamaTarihi)}</td>
+                          <td>{formatDate(record.donusTarihi)}</td>
+                          <td>{record.kiraSuresiGun}</td>
+                          <td>{formatCurrency(record.kiraBedeliGunlukKdvHaric)}</td>
+                          <td>{formatCurrency(record.odenecekToplamTutar)}</td>
+                          <td><button type="button" className="danger small" onClick={() => void handleContractDelete(record.id)}>Sil</button></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+                
               </div>
             ) : null}
           </div>
