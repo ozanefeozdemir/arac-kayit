@@ -509,6 +509,31 @@ function App() {
     if (len < 9) return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3, 6)} ${cleaned.slice(6)}`;
     return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3, 6)} ${cleaned.slice(6, 8)} ${cleaned.slice(8, 10)}`;
   };
+  const handleVehicleChange = (e:any) => {
+    const { name, value, type } = e.target;
+
+    setVehicleForm((prev) => {
+      let finalValue = value;
+
+      // Plaka: Boşlukları sil ve büyük harf yap
+      if (name === 'plaka') {
+        finalValue = value.replace(/\s/g, '').toUpperCase();
+      }
+
+      // Sayısal alanlar (KM, Model Yılı): İçeriği silince 0 olmasını engelle
+      if (type === 'number') {
+        finalValue = value === '' ? '' : Number(value);
+      }
+
+      return { ...prev, [name]: finalValue };
+    });
+  };
+
+  // --- BAKIM FORMU İÇİN MERKEZİ HANDLER ---
+  const handleMaintenanceChange = (e:any) => {
+    const { name, value } = e.target;
+    setMaintenanceForm((prev) => ({ ...prev, [name]: value }));
+  };
 
   const summaryText = useMemo(() => `${totalElements} araç bulundu`, [totalElements])
   return (
@@ -658,16 +683,18 @@ function App() {
                 <div className="form-grid">
                   <label>
                     <span>Plaka <span className="required">*</span></span>
-                    <input value={vehicleForm.plaka} onChange={(event) => setVehicleForm({ ...vehicleForm, plaka: event.target.value.toUpperCase() })} maxLength={20} placeholder="Örn: 34ABC123" />
+                    <input name="plaka" value={vehicleForm.plaka} onChange={handleVehicleChange} maxLength={20} placeholder="Örn: 34ABC123" />
                     {formErrors.plaka ? <small className="error-text">{formErrors.plaka}</small> : null}
                   </label>
+                  
                   <label>
                     <span>Marka <span className="required">*</span></span>
                     <input
+                      name="marka"
                       list="marka-onerileri"
                       autoComplete="off"
                       value={vehicleForm.marka}
-                      onChange={(event) => setVehicleForm({ ...vehicleForm, marka: event.target.value })}
+                      onChange={handleVehicleChange}
                       maxLength={50}
                       placeholder="Örn: Renault"
                     />
@@ -676,13 +703,15 @@ function App() {
                     </datalist>
                     {formErrors.marka ? <small className="error-text">{formErrors.marka}</small> : null}
                   </label>
+                  
                   <label>
                     <span>Model <span className="required">*</span></span>
                     <input
+                      name="model"
                       list="model-onerileri"
                       autoComplete="off"
                       value={vehicleForm.model}
-                      onChange={(event) => setVehicleForm({ ...vehicleForm, model: event.target.value })}
+                      onChange={handleVehicleChange}
                       maxLength={50}
                       placeholder="Örn: Megane"
                     />
@@ -691,58 +720,70 @@ function App() {
                     </datalist>
                     {formErrors.model ? <small className="error-text">{formErrors.model}</small> : null}
                   </label>
+                  
                   <label>
                     <span>Model Yılı <span className="required">*</span></span>
-                    <input type="number" value={vehicleForm.modelYili || ''} onChange={(event) => setVehicleForm({ ...vehicleForm, modelYili: Number(event.target.value) })} min="1900" max={new Date().getFullYear()} placeholder="Örn: 2023" />
+                    <input type="number" name="modelYili" value={vehicleForm.modelYili ?? ''} onChange={handleVehicleChange} min="1900" max={new Date().getFullYear()} placeholder="Örn: 2023" />
                     {formErrors.modelYili ? <small className="error-text">{formErrors.modelYili}</small> : null}
                   </label>
+                  
                   <label>
                     <span>Tipi <span className="required">*</span></span>
-                    <input value={vehicleForm.tipi} onChange={(event) => setVehicleForm({ ...vehicleForm, tipi: event.target.value })} maxLength={100} placeholder="Örn: 1.3 TCe Icon" />
+                    <input name="tipi" value={vehicleForm.tipi} onChange={handleVehicleChange} maxLength={100} placeholder="Örn: 1.3 TCe Icon" />
                     {formErrors.tipi ? <small className="error-text">{formErrors.tipi}</small> : null}
                   </label>
+                  
                   <label>
                     <span>KM</span>
-                    <input type="number" value={vehicleForm.km || ''} onChange={(event) => setVehicleForm({ ...vehicleForm, km: Number(event.target.value) })} min="0" max="999999" placeholder="Örn: 125000" />
+                    <input type="number" name="km" value={vehicleForm.km ?? ''} onChange={handleVehicleChange} min="0" max="999999" placeholder="Örn: 125000" />
                     {formErrors.km ? <small className="error-text">{formErrors.km}</small> : null}
                   </label>
+                  
                   <label>
                     <span>Muayene Tarihi <span className="required">*</span></span>
-                    <input type="date" max={getTodayString()} value={vehicleForm.muayeneTarihi} onChange={(event) => setVehicleForm({ ...vehicleForm, muayeneTarihi: event.target.value })} />
+                    <input type="date" name="muayeneTarihi" value={vehicleForm.muayeneTarihi} onChange={handleVehicleChange} />
                     {formErrors.muayeneTarihi ? <small className="error-text">{formErrors.muayeneTarihi}</small> : null}
                   </label>
-                  <label>
-                    <span>Ekspertiz</span>
-                    <textarea value={vehicleForm.ekspertiz ?? ''} onChange={(event) => setVehicleForm({ ...vehicleForm, ekspertiz: event.target.value })} placeholder="Değişen/boyalı parçalar, tramer kaydı, güncel hasar durumu vb." />
+                  
+                 <label>
+                    <span>Satış Tarihi</span>
+                    <input type="date" name="satisTarihi" max={getTodayString()} value={vehicleForm.satisTarihi ?? ''} onChange={handleVehicleChange} />
                   </label>
+                  
                   <label>
                     <span>Lastik</span>
-                    <input value={vehicleForm.lastikBilgisi ?? ''} onChange={(event) => setVehicleForm({ ...vehicleForm, lastikBilgisi: event.target.value })} placeholder="Örn: 205x55x16" />
+                    <input name="lastikBilgisi" value={vehicleForm.lastikBilgisi ?? ''} onChange={handleVehicleChange} placeholder="Örn: 205x55x16" />
                   </label>
+                  
                   <label>
                     <span>Tescil Tarihi <span className="required">*</span></span>
-                    <input type="date" max={getTodayString()} value={vehicleForm.tescilTarihi} onChange={(event) => setVehicleForm({ ...vehicleForm, tescilTarihi: event.target.value })} />
+                    <input type="date" name="tescilTarihi" max={getTodayString()} value={vehicleForm.tescilTarihi} onChange={handleVehicleChange} />
                     {formErrors.tescilTarihi ? <small className="error-text">{formErrors.tescilTarihi}</small> : null}
                   </label>
+                  
                   <label>
                     <span>Durumu <span className="required">*</span></span>
-                    <select value={vehicleForm.durum} onChange={(event) => setVehicleForm({ ...vehicleForm, durum: event.target.value as VehicleRequest['durum'] })}>
+                    <select name="durum" value={vehicleForm.durum} onChange={handleVehicleChange}>
                       {statusOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
                     </select>
                     {formErrors.durum ? <small className="error-text">{formErrors.durum}</small> : null}
                   </label>
+                  
                   <label>
                     <span>Tescil Belge No</span>
-                    <input value={vehicleForm.tescilBelgeNo ?? ''} onChange={(event) => setVehicleForm({ ...vehicleForm, tescilBelgeNo: event.target.value })} maxLength={50} placeholder="Örn: AB123456" />
+                    <input name="tescilBelgeNo" value={vehicleForm.tescilBelgeNo ?? ''} onChange={handleVehicleChange} maxLength={50} placeholder="Örn: AB123456" />
                   </label>
-                  <label>
+                  
+                  <label className="full-width">
                     <span>Pasif Nedeni</span>
-                    <textarea value={vehicleForm.pasifNedeni ?? ''} onChange={(event) => setVehicleForm({ ...vehicleForm, pasifNedeni: event.target.value })} placeholder="Eğer araç pasife çekildiyse nedenini belirtin (Örn: Kazalı, perte ayrıldı, motor arızası vb.)" />
+                    <textarea name="pasifNedeni" value={vehicleForm.pasifNedeni ?? ''} onChange={handleVehicleChange} placeholder="Eğer araç pasife çekildiyse nedenini belirtin (Örn: Kazalı, perte ayrıldı, motor arızası vb.)" />
                   </label>
-                  <label>
-                    <span>Satış Tarihi</span>
-                    <input type="date" max={getTodayString()} value={vehicleForm.satisTarihi ?? getTodayString()} onChange={(event) => setVehicleForm({ ...vehicleForm, satisTarihi: event.target.value })} />
+                  
+                   <label className="full-width">
+                    <span>Ekspertiz</span>
+                    <textarea name="ekspertiz" value={vehicleForm.ekspertiz ?? ''} onChange={handleVehicleChange} placeholder="Değişen/boyalı parçalar, tramer kaydı, güncel hasar durumu vb." />
                   </label>
+                  
                 </div>
                 <div className="actions-row">
                   <button type="submit" className="primary" disabled={savingVehicle}>{savingVehicle ? 'Kaydediliyor...' : isEditing ? 'Güncelle' : 'Kaydet'}</button>
@@ -753,17 +794,15 @@ function App() {
 
             {activeTab === 'maintenance' && selectedVehicle ? (
               <div className="tab-content">
-                {/* --- GÜNCELLENDİ: Bakım paneline header ve PDF butonu eklendi --- */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                   <h3 style={{ margin: 0 }}>Bakım Geçmişi</h3>
                   {maintenanceRecords.length > 0 && (
                     <button type="button" className="secondary small" onClick={() => exportMaintenanceToPdf(maintenanceRecords, selectedVehicle.plaka)}>PDF İndir</button>
                   )}
                 </div>
-                {/* --------------------------------------------------------------- */}
 
                 {loadingMaintenance ? <p>Yükleniyor...</p> : maintenanceRecords.length === 0 ? <p className="empty">Bakım kaydı bulunamadı.</p> : (
-                  <table>
+                  <table >
                     <thead>
                       <tr>
                         <th>Bakım Tarihi</th>
@@ -784,19 +823,18 @@ function App() {
                     </tbody>
                   </table>
                 )}
+                
                 <form onSubmit={handleMaintenanceSubmit} className="nested-form">
                   <h4>+ Yeni Bakım Girişi</h4>
                   <div className="form-grid compact">
                     <label>
                       <span>Bakım Tarihi <span className="required">*</span></span>
-                      <input type="date" max={getTodayString()} value={maintenanceForm.bakimTarihi} onChange={(event) => setMaintenanceForm({ ...maintenanceForm, bakimTarihi: event.target.value })} />
+                      <input type="date" name="bakimTarihi" max={getTodayString()} value={maintenanceForm.bakimTarihi} onChange={handleMaintenanceChange} />
                     </label>
-                    <label>
-                      <span>Yapılan İşlemler <span className="required">*</span></span>
-                      <textarea placeholder='Ör: Yağ değişimi' value={maintenanceForm.yapilanIslemler} onChange={(event) => setMaintenanceForm({ ...maintenanceForm, yapilanIslemler: event.target.value })} />
-                    </label>
+                    
                     <label>
                       <span>Ücret</span>
+                      {/* CurrencyInput standart e.target yapısını kullanmadığı için kendine özel onValueChange ile yönetilmeye devam ediyor */}
                       <CurrencyInput
                         id="maliyet"
                         name="maliyet"
@@ -804,8 +842,12 @@ function App() {
                         value={maintenanceForm.maliyet}
                         suffix=" ₺"
                         decimalsLimit={2}
-                        onValueChange={(value) => setMaintenanceForm({ ...maintenanceForm, maliyet: value || '' })}
+                        onValueChange={(value) => setMaintenanceForm((prev) => ({ ...prev, maliyet: value || '' }))}
                       />
+                    </label>
+                    <label>
+                      <span>Yapılan İşlemler <span className="required">*</span></span>
+                      <textarea name="yapilanIslemler" placeholder='Ör: Yağ değişimi' value={maintenanceForm.yapilanIslemler} onChange={handleMaintenanceChange} />
                     </label>
                   </div>
                   <button type="submit" className="primary" disabled={savingMaintenance}>{savingMaintenance ? 'Kaydediliyor...' : 'Kaydet'}</button>
