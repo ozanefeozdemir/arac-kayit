@@ -119,3 +119,13 @@ th.sortable:hover {
 .modal-content .panel-header {
   padding-right: 40px; 
 }
+
+.form-grid.three-columns {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+.full-width {
+  grid-column: span 3; /* Adres alanının 3 kolonu da kaplaması için */
+}

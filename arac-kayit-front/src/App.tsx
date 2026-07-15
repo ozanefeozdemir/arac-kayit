@@ -679,8 +679,10 @@ function App() {
             </div>
 
             {activeTab === 'vehicle' ? (
+              
               <form onSubmit={handleVehicleSubmit} className="vehicle-form">
-                <div className="form-grid">
+                {/* Araç formu da sözleşme gibi 3 kolonlu ve compact hale getirildi */}
+                <div className="form-grid compact three-columns">
                   <label>
                     <span>Plaka <span className="required">*</span></span>
                     <input name="plaka" value={vehicleForm.plaka} onChange={handleVehicleChange} maxLength={20} placeholder="Örn: 34ABC123" />
@@ -794,7 +796,11 @@ function App() {
 
             {activeTab === 'maintenance' && selectedVehicle ? (
               <div className="tab-content">
-                <form onSubmit={handleMaintenanceSubmit} className="nested-form">
+                {/* Header Alanı */}
+
+
+                {/* YENİ SIRALAMA: 1. Form (Üstte) */}
+                <form onSubmit={handleMaintenanceSubmit} className="nested-form" style={{ marginBottom: '2rem' }}>
                   <h4>+ Yeni Bakım Girişi</h4>
                   <div className="form-grid compact">
                     <label>
@@ -804,7 +810,6 @@ function App() {
 
                     <label>
                       <span>Ücret</span>
-                      {/* CurrencyInput standart e.target yapısını kullanmadığı için kendine özel onValueChange ile yönetilmeye devam ediyor */}
                       <CurrencyInput
                         id="maliyet"
                         name="maliyet"
@@ -815,8 +820,13 @@ function App() {
                         onValueChange={(value) => setMaintenanceForm((prev) => ({ ...prev, maliyet: value || '' }))}
                       />
                     </label>
+                    <label>
+                      <span>Yapılan İşlemler <span className="required">*</span></span>
+                      <textarea name="yapilanIslemler" placeholder='Ör: Yağ değişimi' value={maintenanceForm.yapilanIslemler} onChange={handleMaintenanceChange} />
+                    </label>
                   </div>
                   <button type="submit" className="primary" disabled={savingMaintenance}>{savingMaintenance ? 'Kaydediliyor...' : 'Kaydet'}</button>
+
                 </form>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                   <h3 style={{ margin: 0 }}>Bakım Geçmişi</h3>
@@ -824,14 +834,14 @@ function App() {
                     <button type="button" className="secondary small" onClick={() => exportMaintenanceToPdf(maintenanceRecords, selectedVehicle.plaka)}>PDF İndir</button>
                   )}
                 </div>
-
+                {/* YENİ SIRALAMA: 2. Tablo (Altta) ve %100 Genişlik */}
                 {loadingMaintenance ? <p>Yükleniyor...</p> : maintenanceRecords.length === 0 ? <p className="empty">Bakım kaydı bulunamadı.</p> : (
-                  <table>
+                  <table style={{ width: '100%', textAlign: 'left' }}>
                     <thead>
                       <tr>
-                        <th>Bakım Tarihi</th>
-                        <th>Yapılan İşlemler</th>
-                        <th>Ücret</th>
+                        <th style={{ width: '25rem' }}>Bakım Tarihi</th>
+                        <th style={{ width: '25rem' }}>Yapılan İşlemler</th>
+                        <th style={{ width: '25rem' }}>Ücret</th>
                         <th>İşlem</th>
                       </tr>
                     </thead>
@@ -847,8 +857,6 @@ function App() {
                     </tbody>
                   </table>
                 )}
-
-
               </div>
             ) : null}
 
@@ -856,8 +864,7 @@ function App() {
               <div className="tab-content">
                 <form onSubmit={handleContractSubmit} className="nested-form">
                   <h4>+ Yeni Sözleşme Girişi</h4>
-                  <div className="form-grid compact two-columns">
-
+                  <div className="form-grid compact three-columns">
                     {/* --- SÖZLEŞME & KİŞİ BİLGİLERİ --- */}
                     <label>
                       <span>Sözleşme Tarihi <span className="required">*</span></span>
@@ -867,16 +874,15 @@ function App() {
                       <span>Yetkili Ad Soyad <span className="required">*</span></span>
                       <input type="text" name="yetkiliAdSoyad" placeholder="Ör: Selami Yıldırım" value={contractForm.yetkiliAdSoyad} onChange={handleInputChange} />
                     </label>
-
                     <label>
                       <span>Araç Kiralayan <span className="required">*</span></span>
                       <input type="text" name="aracKiralayan" placeholder="Ör: Selami Yıldırım" value={contractForm.aracKiralayan} onChange={handleInputChange} />
                     </label>
+
                     <label>
                       <span>Unvan</span>
                       <input type="text" name="unvan" placeholder="Ör: Nikelaj Oto Sanayi A.Ş." value={contractForm.unvan} onChange={handleInputChange} />
                     </label>
-
                     <label>
                       <span>Vergi Dairesi</span>
                       <input type="text" name="vergiDairesi" placeholder="Yalova Vergi Dairesi" value={contractForm.vergiDairesi} onChange={handleInputChange} />
@@ -894,8 +900,11 @@ function App() {
                       <span>Telefon</span>
                       <input type="tel" name="telefon" placeholder="(5XX) XXX XX XX" value={formatPhoneNumber(contractForm.telefon)} onChange={handlePhoneChange} />
                     </label>
+                    <label>
+                      <span>Kullanıcı</span>
+                      <input type="text" name="kullanici" value={contractForm.kullanici} onChange={handleInputChange} />
+                    </label>
 
-                    {/* Adres genellikle daha fazla alan kaplar, grid yapında span-2 gibi bir class verebilirsin */}
                     <label className="full-width">
                       <span>Adres</span>
                       <textarea name="adres" value={contractForm.adres} onChange={handleInputChange} />
@@ -903,20 +912,15 @@ function App() {
 
                     {/* --- KİRALAMA & ARAÇ DETAYLARI --- */}
                     <label>
-                      <span>Kullanıcı</span>
-                      <input type="text" name="kullanici" value={contractForm.kullanici} onChange={handleInputChange} />
-                    </label>
-                    <label>
                       <span>Kiralama Tarihi <span className="required">*</span></span>
                       <input type="date" name="kiralamaTarihi" value={contractForm.kiralamaTarihi} onChange={handleInputChange} />
                     </label>
-
                     <label>
                       <span>Kira Süresi (Gün) <span className="required">*</span></span>
                       <input type="number" name="kiraSuresiGun" min="0" value={contractForm.kiraSuresiGun} onChange={handleInputChange} />
                     </label>
                     <label>
-                      <span>Kira Bedeli (Günlük/KDV Hariç) <span className="required">*</span></span>
+                      <span>Kira Bedeli (Günlük) <span className="required">*</span></span>
                       <CurrencyInput
                         id="kiraBedeliGunlukKdvHaric"
                         name="kiraBedeliGunlukKdvHaric"
@@ -936,25 +940,24 @@ function App() {
                       <span>Dönüş KM</span>
                       <input type="number" name="donusKm" min="0" value={contractForm.donusKm} onChange={handleInputChange} />
                     </label>
-
                     <label>
                       <span>Lastik</span>
                       <input type="text" name="lastik" placeholder="Ör: 210x55x17" value={contractForm.lastik} onChange={handleInputChange} />
                     </label>
                   </div>
+
                   <button type="submit" className="primary" disabled={savingContract}>{savingContract ? 'Kaydediliyor...' : 'Kaydet'}</button>
                 </form>
-                {/* --- GÜNCELLENDİ: Sözleşme paneline header ve PDF butonu eklendi --- */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '2rem', marginBottom: '1rem' }}>
                   <h3 style={{ margin: 0 }}>Sözleşme Geçmişi</h3>
                   {contractRecords.length > 0 && (
                     <button type="button" className="secondary small" onClick={() => exportContractsToPdf(contractRecords, selectedVehicle.plaka)}>PDF İndir</button>
                   )}
                 </div>
-                {/* ----------------------------------------------------------------- */}
 
                 {loadingContracts ? <p>Yükleniyor...</p> : contractRecords.length === 0 ? <p className="empty">Sözleşme kaydı bulunamadı.</p> : (
-                  <table>
+                  <table style={{ width: '100%', tableLayout: 'fixed', textAlign: 'left' }}>
                     <thead>
                       <tr>
                         <th>Sözleşme Tarihi</th>
@@ -972,8 +975,8 @@ function App() {
                       {contractRecords.map((record) => (
                         <tr key={record.id}>
                           <td>{formatDate(record.sozlesmeTarihi)}</td>
-                          <td>{record.aracKiralayan}</td>
-                          <td>{record.yetkiliAdSoyad}</td>
+                          <td style={{ wordWrap: 'break-word' }}>{record.aracKiralayan}</td>
+                          <td style={{ wordWrap: 'break-word' }}>{record.yetkiliAdSoyad}</td>
                           <td>{formatDate(record.kiralamaTarihi)}</td>
                           <td>{formatDate(record.donusTarihi)}</td>
                           <td>{record.kiraSuresiGun}</td>
@@ -985,7 +988,6 @@ function App() {
                     </tbody>
                   </table>
                 )}
-                
               </div>
             ) : null}
           </div>
