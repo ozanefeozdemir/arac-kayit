@@ -235,7 +235,6 @@ function App() {
     if (payload.km < 0 || payload.km > 999999) nextErrors.km = 'KM 0 ile 999.999 arasında olmalıdır.'
     if (!payload.muayeneTarihi) nextErrors.muayeneTarihi = 'Muayene tarihi zorunludur.'
     if (!payload.tescilTarihi) nextErrors.tescilTarihi = 'Tescil tarihi zorunludur.'
-    if (payload.muayeneTarihi && payload.muayeneTarihi > getTodayString()) nextErrors.muayeneTarihi = 'Muayene tarihi bugünden ileri olamaz.'
     if (payload.tescilTarihi && payload.tescilTarihi > getTodayString()) nextErrors.tescilTarihi = 'Tescil tarihi bugünden ileri olamaz.'
     if (!payload.durum) nextErrors.durum = 'Durum seçilmelidir.'
     setFormErrors(nextErrors)
